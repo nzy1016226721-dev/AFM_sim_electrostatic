@@ -1,0 +1,12 @@
+/*
+!/afm_package/
+!/afm_package/**
+!/.gitignore
+
+# Exclude generated/binary data inside the package
+afm_package/*.npy
+afm_package/*.npz
+afm_package/outputs/
+
+__pycache__/
+*.pyc
