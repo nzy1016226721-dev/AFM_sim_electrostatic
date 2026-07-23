@@ -53,12 +53,38 @@ def confirm_directory(description, dir_path):
             print("  Please answer 'y' or 'n'.")
 
 
+def _is_newer(source, target):
+    """Check if source was modified more recently than target.
+
+    Parameters
+    ----------
+    source : str
+        Path to the source file.
+    target : str
+        Path to the target file.
+
+    Returns
+    -------
+    bool
+        True if source doesn't exist (can't check), or if target
+        doesn't exist, or if source is newer than target.
+    """
+    if not os.path.isfile(source):
+        return True
+    if not os.path.isfile(target):
+        return True
+    return os.path.getmtime(source) > os.path.getmtime(target)
+
+
 def main():
     """Run the full presimulation pipeline interactively.
 
     Guides the user through each presimulation step: loading a source JSON,
     generating epsilon depth profile, fractional config, sigma blocks, tip
     sweep configs, high-res NPZ files, and grid arrays.
+
+    Steps 3 (fractional config) and 5 (tip sweep) regenerate automatically
+    when the source nm JSON is newer than the generated files.
 
     Returns
     -------
@@ -95,18 +121,14 @@ def main():
             generate_eps_profile()
 
     frac_config = "afm_config_nm_frac.json"
-    if not os.path.isfile(frac_config):
-        print(f"\n[3] {frac_config} not found.")
-        if confirm("Generate fractional config?"):
-            from .generate_json import generate_config
-            generate_config(source_json=source_json, dest_json=frac_config,
-                            eps_csv=eps_csv if os.path.isfile(eps_csv) else None)
+    if _is_newer(source_json, frac_config):
+        print(f"\n[3] Source changed or {frac_config} missing — regenerating...")
+        from .generate_json import generate_config
+        generate_config(source_json=source_json, dest_json=frac_config,
+                        eps_csv=eps_csv if os.path.isfile(eps_csv) else None,
+                        interactive=False)
     else:
-        print(f"\n[3] Fractional config found: {frac_config}")
-        if confirm("Regenerate?"):
-            from .generate_json import generate_config
-            generate_config(source_json=source_json, dest_json=frac_config,
-                            eps_csv=eps_csv if os.path.isfile(eps_csv) else None)
+        print(f"\n[3] {frac_config} is up to date.")
 
     sigma_json = "sigma_blocks.json"
     sigma_csv = "conductivity_profile.csv"
@@ -127,9 +149,13 @@ def main():
                            output_json=sigma_json)
 
     print(f"\n[5] Tip sweep configs")
-    if confirm("Generate tip sweep configs?"):
+    tip_first = f"afm_config_1.json"
+    if _is_newer(source_json, tip_first):
+        print(f"  Source changed or {tip_first} missing — regenerating...")
         from .json_tips_gen import generate_tip_sweep
-        generate_tip_sweep(template_json=frac_config)
+        generate_tip_sweep(source_json=source_json, interactive=False)
+    else:
+        print(f"  Tip sweep configs are up to date.")
 
     eps_npz = "eps_highres.npz"
     if not os.path.isfile(eps_npz):

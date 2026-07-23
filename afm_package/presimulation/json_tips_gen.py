@@ -1,6 +1,8 @@
 import json
 import os
 
+from .generate_json import convert_blocks_nm_to_frac
+
 
 def confirm_path(description, current_path, must_exist=True):
     """Prompt user to confirm or correct a file path.
@@ -39,20 +41,19 @@ def confirm_path(description, current_path, must_exist=True):
             print("  Please answer 'y' or 'n'.")
 
 
-def generate_tip_sweep(template_json="afm_config_nm_frac.json",
-                       offsets_nm=None, output_base="afm_config",
+def generate_tip_sweep(source_json="afm_config_nm.json",
+                       output_base="afm_config",
                        interactive=True):
     """Generate multiple config files with varying tip z-offsets.
 
-    Takes a template JSON and creates numbered copies with shifted
-    tip_z values based on the provided offset list.
+    Reads the nm-scale source JSON (including offsets_nm, tip_z_nm, Lz_nm,
+    blocks_nm, etc.), converts to fractional coordinates, and creates
+    numbered copies each with a shifted tip_z value.
 
     Parameters
     ----------
-    template_json : str, optional
-        Template JSON with fractional coordinates (default: afm_config_nm_frac.json).
-    offsets_nm : list of float, optional
-        Z-offsets in nanometres (default: sweep from 0 to +/-6 nm).
+    source_json : str, optional
+        Source JSON with nm-scale coordinates (default: afm_config_nm.json).
     output_base : str, optional
         Base filename for output configs (default: "afm_config").
     interactive : bool, optional
@@ -62,36 +63,35 @@ def generate_tip_sweep(template_json="afm_config_nm_frac.json",
     -------
     None
     """
-    if offsets_nm is None:
-        offsets_nm = [0.0000, 1.5529, -1.5529, 3.0000, -3.0000, 4.2426, -4.2426,
-                      5.1962, -5.1962, 5.7956, -5.7956, 6.0000, -6.0000]
-
     if interactive:
         print("=== Tip Z-offset batch generator ===\n")
-        template = confirm_path("Template JSON (fractional coords)", template_json)
-        if template is None:
-            print("Template JSON required. Exiting.")
+        src = confirm_path("Source JSON (nm)", source_json)
+        if src is None:
+            print("Source JSON required. Exiting.")
             return
     else:
-        template = template_json
-        if not os.path.isfile(template):
-            print(f"Template JSON not found: {template}")
+        src = source_json
+        if not os.path.isfile(src):
+            print(f"Source JSON not found: {src}")
             return
 
-    with open(template, 'r') as f:
+    with open(src, 'r') as f:
         cfg = json.load(f)
 
-    required = {"Lx_nm", "Ly_nm", "Lz_nm", "tip_z"}
+    required = {"Lx_nm", "Ly_nm", "Lz_nm", "tip_z_nm", "R_nm", "r_tip_nm", "offsets_nm"}
     missing = required - set(cfg.keys())
     if missing:
-        print(f"Error: Template JSON missing keys: {missing}")
+        print(f"Error: Source JSON missing keys: {missing}")
         return
 
+    Lx = cfg["Lx_nm"]
+    Ly = cfg["Ly_nm"]
     Lz = cfg["Lz_nm"]
-    base_tip_z = cfg["tip_z"]
+    base_tip_z_nm = cfg["tip_z_nm"]
+    offsets_nm = cfg["offsets_nm"]
 
     if interactive:
-        print(f"\nCurrent offset list (nm): {offsets_nm}")
+        print(f"\nOffset list from config (nm): {offsets_nm}")
         ans = input("Use this list? (y/n): ").strip().lower()
         if ans != 'y':
             user_input = input("Enter comma-separated offsets in nm (e.g. 0,0.5,1): ").strip()
@@ -106,22 +106,33 @@ def generate_tip_sweep(template_json="afm_config_nm_frac.json",
         offsets = offsets_nm
 
     for idx, offset_nm in enumerate(offsets, start=1):
-        offset_frac = offset_nm / Lz
-        new_tip_z = base_tip_z + offset_frac
-
-        if not (0.0 <= new_tip_z <= 1.0):
-            print(f"  Offset {offset_nm:.2f} nm -> tip_z = {new_tip_z:.6f} "
+        tip_z = (base_tip_z_nm + offset_nm) / Lz
+        if not (0.0 <= tip_z <= 1.0):
+            print(f"  Offset {offset_nm:.2f} nm -> tip_z = {tip_z:.6f} "
                   f"(out of [0,1]) -- skipping.")
             continue
 
-        new_cfg = cfg.copy()
-        new_cfg["tip_z"] = new_tip_z
+        out_cfg = {}
+        for k, v in cfg.items():
+            if k in ("tip_z_nm", "R_nm", "r_tip_nm", "blocks_nm"):
+                continue
+            out_cfg[k] = v
+
+        out_cfg["tip_z"] = tip_z
+        out_cfg["R"] = cfg["R_nm"] / Lx
+        out_cfg["r_tip"] = cfg["r_tip_nm"] / Lx
+
+        if "blocks_nm" in cfg:
+            out_cfg["blocks"] = convert_blocks_nm_to_frac(
+                cfg["blocks_nm"], Lx, Ly, Lz)
 
         out_name = f"{output_base}_{idx}.json"
         with open(out_name, 'w') as f:
-            json.dump(new_cfg, f, indent=4)
+            json.dump(out_cfg, f, indent=4)
 
-        print(f"  Saved {out_name}  (tip_z = {base_tip_z:.6f} + {offset_frac:.6f} = {new_tip_z:.6f})")
+        base_nm = base_tip_z_nm
+        print(f"  Saved {out_name}  "
+              f"(tip_z = {base_nm:.2f}nm + {offset_nm:.2f}nm -> {tip_z:.6f} frac)")
 
     print("\nDone.")
 

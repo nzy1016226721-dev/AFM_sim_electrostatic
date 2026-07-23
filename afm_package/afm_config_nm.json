@@ -1,29 +1,66 @@
 {
     "output_dir": "outputs",
-    "Lx_nm": 512, "Ly_nm": 512, "Lz_nm": 512,
-    "tip_z_nm": 268, "aspect_ratio": 4, "R_nm": 5, "r_tip_nm": 1000,
-    "res_tol_main": 1e-7,
-    "res_tol_zoom": 5e-8,
+    "Lx_nm": 512,
+    "Ly_nm": 512,
+    "Lz_nm": 512,
+    "tip_z_nm": 268,
+    "aspect_ratio": 4,
+    "R_nm": 5,
+    "r_tip_nm": 1000,
+    "res_tol_main": 1e-07,
+    "res_tol_zoom": 5e-08,
     "v_start": 2.95,
     "v_stop": 2.96,
     "v_step": 0.01,
     "mg_max_runtime": 12000.0,
-    
     "csv_filename": "phi_vs_Vtip.csv",
     "movement": {
-        "start": [0.5, 0.5, 0.4975],
-        "end":   [0.5, 0.505, 0.4975],
+        "start": [
+            0.5,
+            0.5,
+            0.4975
+        ],
+        "end": [
+            0.5,
+            0.505,
+            0.4975
+        ],
         "spacing": 0.1
     },
     "Vgate": [
-        {"Vgate_val": 0.0,
-            "x_range": [0.0, 1.0],
-            "y_range": [0.0, 1.0],
-            "z_range": [0.0, 0.0],
-            "x_fix": [0.0, 0.0, 1.0, 1.0],
-            "y_fix": [0.0, 0.0, 1.0, 1.0],
-            "z_fix": [0.0, 0.0, 0.0, 0.0]}
-        
+        {
+            "Vgate_val": 0.0,
+            "x_range": [
+                0.0,
+                1.0
+            ],
+            "y_range": [
+                0.0,
+                1.0
+            ],
+            "z_range": [
+                0.0,
+                0.0
+            ],
+            "x_fix": [
+                0.0,
+                0.0,
+                1.0,
+                1.0
+            ],
+            "y_fix": [
+                0.0,
+                0.0,
+                1.0,
+                1.0
+            ],
+            "z_fix": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ]
+        }
     ],
     "zoom_simulation": {
         "enabled": true,
@@ -31,51 +68,108 @@
         "zoom_factor": 3,
         "zoom_limit": 9,
         "cut": {
-            "x_range": [0.45, 0.55],
-            "y_range": [0.45, 0.55],
-            "z_range": [0.45, 0.55]
+            "x_range": [
+                0.45,
+                0.55
+            ],
+            "y_range": [
+                0.45,
+                0.55
+            ],
+            "z_range": [
+                0.45,
+                0.55
+            ]
         }
     },
     "blocks_nm": [
         {
-            "eps_val": 1.0        
+            "eps_val": 1.0
         },
         {
             "eps_val": 11.7,
-            "z_range_nm": [0, 256]
+            "z_range_nm": [
+                0,
+                256
+            ]
         },
         {
             "eps_val": 12.0,
-            "x_range_nm": [128, 384],
-            "y_range_nm": [128, 384],
-            "z_range_nm": [250, 256]
+            "x_range_nm": [
+                128,
+                384
+            ],
+            "y_range_nm": [
+                128,
+                384
+            ],
+            "z_range_nm": [
+                250,
+                256
+            ]
         },
         {
             "eps_val": 3.9,
-            "z_range_nm": [255.3, 256]
+            "z_range_nm": [
+                255.3,
+                256
+            ]
         },
         {
             "eps_val": 11.7,
-            "z_range_nm": [0, 250]
+            "z_range_nm": [
+                0,
+                250
+            ]
         }
+    ],
+    "offsets_nm": [
+        0.0,
+        1.5529,
+        -1.5529,
+        3.0,
+        -3.0,
+        4.2426,
+        -4.2426,
+        5.1962,
+        -5.1962,
+        5.7956,
+        -5.7956,
+        6.0,
+        -6.0
     ],
     "sigma_blocks": [
         {
-            "sigma_val": 0},
-        { 
+            "sigma_val": 0
+        },
+        {
             "sigma_val": 21.6,
-            "z_range_nm": [0, 256]
+            "z_range_nm": [
+                0,
+                256
+            ]
         },
         {
             "sigma_val": 1700,
-            "x_range_nm": [128, 384],
-            "y_range_nm": [128, 384],
-            "z_range_nm": [250, 256]
+            "x_range_nm": [
+                128,
+                384
+            ],
+            "y_range_nm": [
+                128,
+                384
+            ],
+            "z_range_nm": [
+                250,
+                256
+            ]
         },
-        
         {
             "sigma_val": 21.6,
-            "z_range_nm": [0, 250]
-        
-        }]
+            "z_range_nm": [
+                0,
+                250
+            ]
+        }
+    ]
 }

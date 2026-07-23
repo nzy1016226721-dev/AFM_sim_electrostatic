@@ -78,7 +78,7 @@ def convert_blocks_nm_to_frac(blocks_nm, Lx, Ly, Lz):
     return frac_blocks
 
 
-def modify_block_from_csv(blocks_frac, Lz, csv_path):
+def modify_block_from_csv(blocks_frac, Lz, csv_path, block_idx=None):
     """Replace a dielectric block's epsilon profile with CSV data.
 
     Reads epsilon vs z from a CSV, identifies which block covers that depth,
@@ -92,11 +92,15 @@ def modify_block_from_csv(blocks_frac, Lz, csv_path):
         Full box length in z (nm).
     csv_path : str
         Path to CSV with columns (z_m, epsilon).
+    block_idx : int or None, optional
+        If provided, use this block index directly without prompting.
+        If None, ask the user interactively (default: None).
 
     Returns
     -------
-    list of dict
-        Updated block list with the selected block subdivided.
+    tuple of (list of dict, int or None)
+        Updated block list and the index of the block that was replaced
+        (None if no replacement was made).
     """
     try:
         data = np.genfromtxt(csv_path, delimiter=",", skip_header=1)
@@ -108,7 +112,7 @@ def modify_block_from_csv(blocks_frac, Lz, csv_path):
             eps_vals = data[:, 1]
     except Exception as e:
         print(f"Error reading CSV: {e}")
-        return blocks_frac
+        return blocks_frac, None
 
     z_offset_nm = z_m * 1e9
 
@@ -119,16 +123,22 @@ def modify_block_from_csv(blocks_frac, Lz, csv_path):
               f"y=[{blk['y_range'][0]:.4f}, {blk['y_range'][1]:.4f}]  "
               f"z=[{blk['z_range'][0]:.4f}, {blk['z_range'][1]:.4f}]")
 
-    while True:
-        try:
-            idx = int(input("Index of block to replace (or -1 to cancel): "))
-            if idx == -1:
-                return blocks_frac
-            if 0 <= idx < len(blocks_frac):
-                break
-            print("  Index out of range.")
-        except ValueError:
-            print("  Enter a valid integer.")
+    if block_idx is None:
+        while True:
+            try:
+                idx = int(input("Index of block to replace (or -1 to cancel): "))
+                if idx == -1:
+                    return blocks_frac, None
+                if 0 <= idx < len(blocks_frac):
+                    break
+                print("  Index out of range.")
+            except ValueError:
+                print("  Enter a valid integer.")
+    else:
+        idx = block_idx
+        if not (0 <= idx < len(blocks_frac)):
+            print(f"  Cached block index {idx} out of range. Skipping CSV modification.")
+            return blocks_frac, None
 
     selected = blocks_frac[idx]
     original_eps = selected["eps_val"]
@@ -185,7 +195,7 @@ def modify_block_from_csv(blocks_frac, Lz, csv_path):
         blocks_frac.insert(idx + j, blk)
 
     print(f"  Replaced block [{idx}] with {len(new_blocks)} merged layer(s).")
-    return blocks_frac
+    return blocks_frac, idx
 
 
 def preview_blocks(blocks, Lx_nm, Ly_nm, Lz_nm):
@@ -466,7 +476,14 @@ def generate_config(source_json="afm_config_nm.json", dest_json="afm_config_nm_f
 
     if csv_path and blocks_frac:
         print("\n--- Epsilon profile from CSV ---")
-        blocks_frac = modify_block_from_csv(blocks_frac, Lz, csv_path)
+        csv_block_idx = dest_data.get("_csv_block_idx") if dest_data else None
+        if not interactive and csv_block_idx is None:
+            print("  No cached block index available — skipping CSV modification (use interactive mode to set it first).")
+            csv_idx_used = None
+        else:
+            blocks_frac, csv_idx_used = modify_block_from_csv(blocks_frac, Lz, csv_path, block_idx=csv_block_idx)
+        if csv_idx_used is not None:
+            dest_data["_csv_block_idx"] = csv_idx_used
 
     if blocks_frac and interactive:
         ans = input("\nPreview current dielectric blocks? (y/n): ").strip().lower()

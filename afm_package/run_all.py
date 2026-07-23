@@ -39,7 +39,9 @@ def run_postprocessing():
     print("2. Integrate power density")
     print("3. Run sanity check")
     print("4. QD lever arm calculator")
-    choice = input("Select option (1-4, or Enter to return): ").strip()
+    print("5. Plot electric field lines")
+    print("6. 3D potential map")
+    choice = input("Select option (1-6, or Enter to return): ").strip()
 
     if choice == "1":
         from postprocessing.plot_npy import plot_afm_from_npy
@@ -76,6 +78,14 @@ def run_postprocessing():
     elif choice == "4":
         from postprocessing.lever_arm_calc import main as lever_arm_main
         lever_arm_main()
+
+    elif choice == "5":
+        from postprocessing.field_lines import interactive_main as field_lines_main
+        field_lines_main()
+
+    elif choice == "6":
+        from postprocessing.potential_map import interactive_main as potential_map_main
+        potential_map_main()
 
     else:
         return
