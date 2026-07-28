@@ -185,55 +185,50 @@ def compute_residual_scalars(V, mask, axp, axm, ayp, aym, azp, azm, a0):
     return res_L2, res_max
 
 
-def log_residual_csv(iteration, res_avg, res_max, csv_file=RESIDUAL_CSV, output_dir="."):
-    """Append one row to the residual convergence CSV log.
-
-    Parameters
-    ----------
-    iteration : int
-        Solver iteration number.
-    res_avg : float
-        Average residual value.
-    res_max : float
-        Maximum residual value.
-    csv_file : str, optional
-        CSV filename (default: RESIDUAL_CSV).
-    output_dir : str, optional
-        Output directory (default: ".").
-
-    Returns
-    -------
-    None
-    """
-    os.makedirs(output_dir, exist_ok=True)
-    path = os.path.join(output_dir, csv_file)
-    file_exists = os.path.isfile(path)
-    with open(path, mode="a", newline="") as f:
+def log_residual_csv(iteration, res_avg, res_max, csv_file=None, output_dir="."):
+    if csv_file is None:
+        csv_file = RESIDUAL_CSV
+    csv_path = os.path.join(output_dir, csv_file)
+    file_exists = os.path.isfile(csv_path)
+    with open(csv_path, mode="a", newline="") as f:
         writer = csv.writer(f)
         if not file_exists:
             writer.writerow(["iteration", "residual_avg", "residual_max"])
         writer.writerow([iteration, res_avg, res_max])
 
 
-def plot_convergence(csv_file=RESIDUAL_CSV, output_dir="."):
-    """Plot the convergence history from a residual CSV log.
-
-    Parameters
-    ----------
-    csv_file : str, optional
-        Residual CSV filename (default: RESIDUAL_CSV).
-    output_dir : str, optional
-        Directory containing the CSV (default: ".").
-
-    Returns
-    -------
-    None
+def plot_convergence(csv_file=None, output_dir="."):
     """
-    csv_file = os.path.join(output_dir, csv_file) if output_dir else csv_file
-    if not os.path.isfile(csv_file):
-        raise FileNotFoundError(f"No residual history file found: {csv_file}")
+    Plot convergence history from residual CSV.
+    If csv_file is None, use RESIDUAL_CSV.
+    """
+    if csv_file is None:
+        csv_file = RESIDUAL_CSV
 
-    df = pd.read_csv(csv_file)
+    # Prepend output directory if path is relative
+    if not os.path.isabs(csv_file):
+        csv_file = os.path.join(output_dir, csv_file)
+
+    if not os.path.isfile(csv_file):
+        print(f"Warning: residual file not found: {csv_file}")
+        return
+
+    # Try to read with different encodings
+    encodings = ['utf-8-sig', 'latin-1', 'cp1252']
+    df = None
+    for enc in encodings:
+        try:
+            df = pd.read_csv(csv_file, encoding=enc)
+            break
+        except (UnicodeDecodeError, pd.errors.EmptyDataError):
+            continue
+    if df is None:
+        print(f"Warning: could not read {csv_file} with any encoding. Skipping plot.")
+        return
+
+    if df.empty:
+        print("Warning: residual file is empty. Skipping plot.")
+        return
 
     plt.figure(figsize=(7, 5))
     plt.semilogy(df["iteration"], df["residual_avg"],
@@ -242,7 +237,6 @@ def plot_convergence(csv_file=RESIDUAL_CSV, output_dir="."):
     plt.semilogy(df["iteration"], df["residual_max"],
                  marker="x", markersize=2, linestyle="None", color="tab:red",
                  label="Max residual")
-
     plt.xlabel("Iteration")
     plt.ylabel("Residual")
     plt.title("Convergence History (Average vs Max)")
@@ -413,41 +407,26 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
         plot_convergence(output_dir=output_dir)
         return V, res_matrix
 
+def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
+                 max_iter=50, tol=1e-6, verbose=True, eps_r=None, eps=True,
+                 mg_max_runtime=None, output_dir="."):
+    """Multigrid solver for the 3D Poisson equation with dielectric variation."""
+    nx, ny, nz = phi.shape
+
+    def neumann(a):
+        """Apply homogeneous Neumann BC by copying the nearest interior plane."""
+        a[0,:,:] = a[1,:,:]; a[-1,:,:] = a[-2,:,:]
+        a[:,0,:] = a[:,1,:]; a[:,-1,:] = a[:,-2,:]
+        a[:,:,0] = a[:,:,1]; a[:,:,-1] = a[:,:,-2]
+        return a
+
+    print(f"   Starting 3D MG solver: {nx}x{ny}x{nz} grid")
+
     def solve_varying_dielectric_3d_zero_rhs(V, eps_cell, omega=1.5,
                                               tol=1e-10, max_iter=20000,
                                               mask=None, verbose=False,
                                               output_dir="."):
-        """(Optimised) SOR solver for div(eps * grad(phi)) = 0.
-
-        Uses pre-allocated buffers and in-place operations for performance.
-        Same interface as the legacy version.
-
-        Parameters
-        ----------
-        V : np.ndarray
-            Potential array (modified in-place).
-        eps_cell : np.ndarray
-            Dielectric on cells (Nx-1 x Ny-1 x Nz-1).
-        omega : float, optional
-            Over-relaxation factor (default: 1.5).
-        tol : float, optional
-            Convergence tolerance (default: 1e-10).
-        max_iter : int, optional
-            Maximum iterations (default: 20000).
-        mask : np.ndarray (bool) or None, optional
-            Dirichlet mask (default: None).
-        verbose : bool, optional
-            If True, print progress (default: False).
-        output_dir : str, optional
-            Log directory (default: ".").
-
-        Returns
-        -------
-        V : np.ndarray
-            Converged potential.
-        res_matrix : np.ndarray
-            Final residual per node.
-        """
+        """Optimised SOR solver for div(eps * grad(phi)) = 0."""
         Nx, Ny, Nz = V.shape
         if eps_cell.shape != (Nx-1, Ny-1, Nz-1):
             raise ValueError("eps_cell must have shape (Nx-1,Ny-1,Nz-1).")
@@ -467,6 +446,14 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
 
         a0 = axp + axm + ayp + aym + azp + azm
 
+        # ---------- Ensure residual CSV exists with header ----------
+        csv_path = os.path.join(output_dir, RESIDUAL_CSV)
+        if not os.path.isfile(csv_path) or os.path.getsize(csv_path) == 0:
+            with open(csv_path, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(["iteration", "residual_avg", "residual_max"])
+        # -----------------------------------------------------------
+
         Ni, Nj, Nk = Nx-2, Ny-2, Nz-2
 
         num       = np.empty((Ni, Nj, Nk), dtype=np.float32)
@@ -483,7 +470,7 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
 
         level_start_time = time.time()
 
-        for it in range(1, max_iter+1):
+        for it in range(1, max_iter + 1):
             np.multiply(axp, V_xp, out=num)
             np.add(num, axm * V_xm, out=num)
             np.add(num, ayp * V_yp, out=num)
@@ -507,7 +494,7 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
                 )
                 if verbose:
                     print(f"iter {it:6d}: res_avg={res:.5e}, res_max={res_max:.5e}")
-                    log_residual_csv(it, res, res_max, output_dir=output_dir)
+                log_residual_csv(it, res, res_max, output_dir=output_dir)
 
                 if res < tol:
                     if verbose:
@@ -520,14 +507,17 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
                       f"Completed {it} iterations.")
                 plot_convergence(output_dir=output_dir)
                 full_res = np.full_like(V, np.nan, dtype=np.float32)
-                full_res[1:-1,1:-1,1:-1] = np.abs(R_arr)
+                full_res[1:-1, 1:-1, 1:-1] = np.abs(R_arr)
                 return V, full_res
 
+        # If we exit the loop without converging or hitting runtime limit
         print(f"NOT converged after {max_iter} iterations; last residual={res:.5e}")
         plot_convergence(output_dir=output_dir)
         full_res = np.full_like(V, np.nan, dtype=np.float32)
-        full_res[1:-1,1:-1,1:-1] = np.abs(R_arr)
+        full_res[1:-1, 1:-1, 1:-1] = np.abs(R_arr)
         return V, full_res
+
+    # ---- End of inner solver definition ----
 
     if eps:
         return solve_varying_dielectric_3d_zero_rhs(
