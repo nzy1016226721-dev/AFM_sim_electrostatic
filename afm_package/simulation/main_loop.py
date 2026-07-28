@@ -920,10 +920,17 @@ def batch_main(CONFIG_BASE_NAME="afm_config"):
                 for V in V_values:
                     print(f"\n=== Running AFM simulation at Vtip = {V:.2f} V ===")
                     start_time = time.time()
+                    
+                    grid = cfg.get("grid_resolution", {})
+                    nx_target = grid.get("nx", 256)
+                    ny_target = grid.get("ny", 256)
+                    nz_target = grid.get("nz", 256)
+                    print(f"📐 Using grid resolution: {nx_target}×{ny_target}×{nz_target}")
+
 
                     results = run_afm_simulation(
                         Vtip=V,
-                        nx=512, ny=512, nz=512,
+                        nx=nx_target, ny=ny_target, nz=nz_target,
                         tip_z=cfg["tip_z"],
                         R=cfg["R"],
                         r_tip=cfg["r_tip"],
