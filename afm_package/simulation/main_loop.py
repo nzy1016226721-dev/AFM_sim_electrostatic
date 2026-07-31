@@ -80,7 +80,6 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
     nx_target, ny_target, nz_target = nx, ny, nz
     nx, ny, nz = 8, 8, 8
     phi = np.full((nx, ny, nz), 0.001, dtype=np.float32)
-    total_iter = 0
     level = 1
 
     while True:
@@ -120,23 +119,12 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
         else:
             eps_cell = eps_r.copy()
 
-        remaining_iter = max_iter - total_iter
-        if remaining_iter <= 0:
-            if verbose:
-                print(f"[Level {level}] Reached max_iter={max_iter}, stopping.")
-            break
-
-        if verbose:
-            print(f"[Level {level}] Running solver (remaining_iter={remaining_iter})...")
-
         phi_solution, res_m = mg_3d_masked(Vtip, phi.copy(), boundary_mask,
                                     damping=damping, nu1=nu1, nu2=nu2,
-                                    max_iter=remaining_iter, tol=tol,
+                                    max_iter=max_iter, tol=tol,
                                     verbose=verbose, eps_r=eps_cell, eps=eps,
                                     mg_max_runtime=mg_max_runtime,
                                     output_dir=output_dir)
-
-        total_iter += remaining_iter // 2
 
         logfile = os.path.join(output_dir, "mg_timing_log.csv")
         os.makedirs(output_dir, exist_ok=True)
@@ -151,11 +139,6 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
         if nx == nx_target and ny == ny_target and nz == nz_target:
             if verbose:
                 print(f"[Level {level}] Target grid size reached ({nx}x{ny}x{nz}). Simulation complete.")
-            break
-
-        if total_iter >= max_iter:
-            if verbose:
-                print(f"[Level {level}] Max iterations {max_iter} reached before reaching target size.")
             break
 
         nx *= 2
@@ -193,7 +176,7 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
         'surface_potential': surface_potential, 'surface_field': surface_field,
         'parameters': {'nx': nx, 'ny': ny, 'nz': nz,
                        'tip_pos': tip_pos, 'base_pos': base_pos,
-                       'total_iter': total_iter, 'levels': level}
+                       'levels': level}
     }
     return results
 
@@ -936,7 +919,7 @@ def batch_main(CONFIG_BASE_NAME="afm_config"):
                         r_tip=cfg["r_tip"],
                         damping=1,
                         nu1=2, nu2=2,
-                        max_iter=100000,
+                        max_iter=60000,
                         tol=cfg.get("res_tol_main", 5e-5),
                         aspect_ratio=cfg["aspect_ratio"],
                         verbose=False,
