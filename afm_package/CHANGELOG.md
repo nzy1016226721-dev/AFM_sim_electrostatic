@@ -3,7 +3,7 @@
 This file records the evolution of the current AFM simulation package relative to the
 original uploaded package:
 
-`afm_package_alliance_ready_full(1).zip`
+`afm_package`
 
 The current package is maintained as a cleaned, Alliance-ready development line.
 Each subsequent improvement should add a new dated/versioned entry to this file rather
