@@ -1,2 +1,0 @@
-# Optional dependency for simulation memory tracking
-psutil
