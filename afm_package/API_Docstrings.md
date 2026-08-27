@@ -15,7 +15,6 @@ This release documents the public Python API for the electrostatic AFM simulator
 - `log_residual_csv(iteration, res_avg, res_max, csv_file, output_dir)` — Append one row to the residual convergence CSV log.
 
 - `log_timing(level, nx, ny, nz, elapsed, logfile, output_dir)` — Log the elapsed time for one MG level to a CSV file.
-- `log_memory_usage(level_resolution, memory_gb, logfile, output_dir)` — Append peak process memory usage for one main or zoom level to `memory_usage_log.csv`.
 
 - `get_sorted_config_files(base_name, directory)` — Get a numerically sorted list of config files matching base_name_*.json.
 
@@ -116,18 +115,6 @@ This release documents the public Python API for the electrostatic AFM simulator
 
 - `create_default_qd_block(Lx, Ly, Lz, dot_diameter, dot_height, dot_bottom)` — Create a default QD block for testing.
 
-- `sphere_plane_capacitance(Z_m, R_m, eps0, tol)` — Exact capacitance of a sphere of radius R_m at height Z_m above
-
-- `parse_phi_filename(fname)` — Extract metadata from a phi .npy filename.
-
-- `extract_phi_qd(phi, qd_xr, qd_yr, qd_zr, Lx, Ly, Lz, zoom_bounds)` — Extract potential values inside a QD region.
-
-- `compute_stats(phi_values)` — Compute mean and max-absolute value.
-
-- `find_qd_block(nm_cfg, default_eps)` — Find the quantum dot block in the nm config by eps_val match.
-
-- `create_default_qd_block(Lx, Ly, Lz, dot_diameter, dot_height, dot_bottom)` — Create a default QD block for testing.
-
 - `sanity_check_comparison_multi(phi_files, qd_block, qd_top_z_nm, Lx_nm, Ly_nm, Lz_nm, R_nm, config_dir, nm_cfg, use_max)` — Compare simulated lever arm with analytical sphere‑plane model,
 
 - `main()` — Interactive entry point for the multi‑layer sanity check.
@@ -187,6 +174,7 @@ This release documents the public Python API for the electrostatic AFM simulator
 
 - `MemoryTracker(interval)` — Background process-RSS sampler that records peak memory during one simulation level.
 - `track_memory(interval)` — Context manager that exposes the measured `peak_gb` value after the level finishes.
+- `log_memory_usage(level_resolution, memory_gb, logfile, output_dir)` — Append peak process memory usage for one main or zoom level to `memory_usage_log.csv`.
 
 
 ## `simulation.coordinates`

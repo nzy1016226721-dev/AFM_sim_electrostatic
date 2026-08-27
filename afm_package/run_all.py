@@ -78,13 +78,12 @@ def run_postprocessing():
     """Launch the available postprocessing and validation menu."""
     print("\n--- Postprocessing ---")
     print("1. Plot NPY potential file")
-    print("2. Integrate power density")
-    print("3. Run sanity check")
-    print("4. QD lever arm calculator")
-    print("5. Plot electric field lines")
-    print("6. 3D potential map")
-    print("7. Capacitance sanity check")
-    choice = input("Select option (1-7, or Enter to return): ").strip()
+    print("2. Run sanity check")
+    print("3. QD lever arm calculator")
+    print("4. Plot electric field lines")
+    print("5. 3D potential map")
+    print("6. Capacitance sanity check")
+    choice = input("Select option (1-6, or Enter to return): ").strip()
 
     if choice == "1":
         from postprocessing.plot_npy import plot_afm_from_npy
@@ -104,9 +103,6 @@ def run_postprocessing():
         plt.show()
 
     elif choice == "2":
-        print("Power integration has been removed — marked deprecated.")
-
-    elif choice == "3":
         from postprocessing.sanity_check import run_sanity_check
         phi_file = input("Path to potential .npy file (default: afm_phi_1_-2.00V.npy): ").strip()
         if not phi_file:
@@ -116,19 +112,19 @@ def run_postprocessing():
             config_file = "afm_config_nm.json"
         run_sanity_check(phi_file=phi_file, config_file=config_file, check_type="e")
 
-    elif choice == "4":
+    elif choice == "3":
         from postprocessing.lever_arm_calc import main as lever_arm_main
         lever_arm_main()
 
-    elif choice == "5":
+    elif choice == "4":
         from postprocessing.field_lines import interactive_main as field_lines_main
         field_lines_main()
 
-    elif choice == "6":
+    elif choice == "5":
         from postprocessing.potential_map import interactive_main as potential_map_main
         potential_map_main()
         
-    elif choice == "7":
+    elif choice == "6":
         from postprocessing.capacitance_sanity_check import main as sanity_multi_main
         sanity_multi_main()
 

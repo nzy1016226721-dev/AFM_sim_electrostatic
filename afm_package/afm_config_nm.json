@@ -5,8 +5,8 @@
     "aspect_ratio": 4,
     "R_nm": 5,
     "r_tip_nm": 1000,
-    "res_tol_main": 5e-07,
-    "res_tol_zoom": 5e-08,
+    "res_tol_main": 5e-05,
+    "res_tol_zoom": 5e-05,
     "v_start": -1.0,
     "v_stop": -3.0,
     "v_step": 1,
@@ -35,7 +35,7 @@
         "nz": 512
     },
     "zoom_simulation": {
-        "enabled": false,
+        "enabled": true,
         "phi_npy_file": "afm_phi.npy",
         "zoom_factor": 2,
         "zoom_limit": 4,
@@ -61,7 +61,7 @@
         "enabled": true,
         "disable_in_non_ide": true
     },
-    "memory_tracking": false,
+    "memory_tracking": true,
     "coordinate_system": {
         "origin_fraction": [
             0.5,

@@ -262,7 +262,7 @@ def run_zoom_simulation(cfg, results, V, config_idx, time_log=None, output_dir="
         eps_reference = zoom_cfg.get("epsilon_reference_resolution", cfg.get("epsilon_material", {}).get("reference_resolution", 512))
         eps_reference_shape = (int(eps_reference),) * 3 if not isinstance(eps_reference, (list, tuple)) else tuple(int(v) for v in eps_reference)
         eps = generate_eps_level(phi.shape, zoom_blocks, reference_shape=eps_reference_shape)
-        if zoom_blocks:
+        if plotting_enabled and zoom_blocks:
             qd_ids = [b for b in zoom_blocks if abs(b["eps_val"] - 15.0) < 1e-9]
             if qd_ids:
                 z_mid = (min(b["z_range"][0] for b in qd_ids) + max(b["z_range"][1] for b in qd_ids)) / 2.0
@@ -302,6 +302,7 @@ def run_zoom_simulation(cfg, results, V, config_idx, time_log=None, output_dir="
             plt.suptitle('Dielectric preview - zoom level %d (slice at QD center)' % level)
             plt.tight_layout()
             plt.show()
+            plt.close(fig)
 
 
         boundary_mask = np.zeros_like(phi, dtype=bool)

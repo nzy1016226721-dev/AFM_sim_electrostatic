@@ -17,7 +17,6 @@ branch.
 ```text
 afm_package/
 ├── afm_config_nm.json          # supported distributed config
-├── afm_config_nm.json         # supported distributed config
 ├── run_all.py                 # CLI/interactive launcher
 ├── requirements.txt
 ├── jobs/run_afm.sh            # Alliance/Slurm launcher

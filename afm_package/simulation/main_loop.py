@@ -32,9 +32,10 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
                         physical_params=None, eps_reference_resolution=512):
     """Run a multiresolution AFM electrostatic simulation.
 
-    Starts from an 8x8x8 grid, solves Poisson's equation at each
-    refinement level (doubling grid), and upscales the solution
-    using scipy.ndimage.zoom until the target grid is reached.
+    Starts from an 8x8x8 grid for targets at or below 512 cells per axis.
+    Larger targets start at 64x64x64 to avoid an unnecessary legacy warm-up;
+    each refinement level doubles toward the requested target and upscales
+    the solution using scipy.ndimage.zoom.
 
     Parameters
     ----------
@@ -108,161 +109,164 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
             ref_shape, blocks=blocks
         )
 
-    while True:
-        if verbose:
-            print(f"\n[Level {level}] Solving on {nx}x{ny}x{nz} grid...")
-
-        physical = physical_params
-        if physical:
-            domain_nm = physical["domain_nm"]
-            origin = physical["origin_fraction"]
-            tip_mask, tip_pos, base_pos = build_downward_pointing_tip(
-                nx, ny, nz, tip_z, R, r_tip, aspect_ratio, verbose=False,
-                tip_z_nm=physical.get("tip_z_nm"),
-                R_nm=physical.get("R_nm"),
-                r_tip_nm=physical.get("r_tip_nm"),
-                domain_nm=domain_nm,
-                center_fraction=origin,
-            )
-        else:
-            tip_mask, tip_pos, base_pos = build_downward_pointing_tip(
-                nx, ny, nz, tip_z, R, r_tip, aspect_ratio, verbose=False
-            )
-
-        boundary_mask = np.zeros((nx, ny, nz), dtype=bool)
-
-        gate_masks = []
-        gate_values = []
-        if Vgate is not None and isinstance(Vgate, (list, tuple)) and len(Vgate) > 0:
-            for g in Vgate:
-                mask_g = make_gate_mask(nx, ny, nz, g)
-                val_g  = float(g.get("Vgate_val", 0.0))
-                phi[mask_g] = val_g
-                boundary_mask[mask_g] = True
-                gate_masks.append(mask_g)
-                gate_values.append(val_g)
-        else:
-            if isinstance(Vgate, dict):
-                mask_g = make_gate_mask(nx, ny, nz, Vgate)
-                val_g  = float(Vgate.get("Vgate_val", 0.0))
-                phi[mask_g] = val_g
-                boundary_mask[mask_g] = True
-                gate_masks.append(mask_g)
-                gate_values.append(val_g)
-
-        phi[tip_mask] = Vtip
-        boundary_mask[tip_mask] = True
-
-        if eps_r is None:
-            eps_reference = eps_reference_resolution
-            eps_reference_shape = (int(eps_reference), int(eps_reference), int(eps_reference)) if not isinstance(eps_reference, (list, tuple)) else tuple(int(v) for v in eps_reference)
-            eps_cell = generate_eps_level(
-                phi.shape, blocks, reference_shape=eps_reference_shape,
-                reference=eps_reference_mmap
-            )
-        else:
-            eps_cell = np.asarray(eps_r, dtype=np.float32)
-
-        if memory_tracking:
-            from .memory import track_memory, log_memory_usage
-            memory_context = track_memory()
-        else:
-            from contextlib import nullcontext
-            memory_context = nullcontext(None)
-
-        with memory_context as mem_tracker:
-            phi_solution, res_m = mg_3d_masked(Vtip, phi.copy(), boundary_mask,
-                                        damping=damping, nu1=nu1, nu2=nu2,
-                                        max_iter=max_iter, tol=tol,
-                                        verbose=verbose, eps_r=eps_cell, eps=eps,
-                                        mg_max_runtime=mg_max_runtime,
-                                        output_dir=output_dir,
-                                        plotting_enabled=plotting_enabled)
-
-        if memory_tracking:
-            log_memory_usage(f"main {nx}x{ny}x{nz}", mem_tracker.peak_gb, output_dir=output_dir)
-
-        logfile = os.path.join(output_dir, "mg_timing_log.csv")
-        os.makedirs(output_dir, exist_ok=True)
-        file_exists = os.path.isfile(logfile)
-        with open(logfile, "a", newline="") as f:
-            w = csv.writer(f)
-            if not file_exists:
-                w.writerow(["level", "Nx", "Ny", "Nz", "time_sec"])
-            level_elapsed = MG_TIME.get("elapsed", 0.0)
-            w.writerow([level, nx, ny, nz, f"{level_elapsed:.6f}"])
-
-        is_final = (nx == nx_target and ny == ny_target and nz == nz_target)
-        if save_all_levels and level_name_prefix and nx >= 32 and not is_final:
-            level_base = os.path.splitext(level_name_prefix)[0]
-            level_name = f"{level_base}_level{nx}x{ny}x{nz}.npy"
-            level_path = os.path.join(output_dir, level_name)
-            n = 0
-            while os.path.exists(level_path):
-                n += 1
-                level_path = os.path.join(output_dir,
-                                          f"{os.path.splitext(level_name)[0]} ({n}).npy")
-            np.save(level_path, phi_solution)
-            print(f"  Saved level: {os.path.basename(level_path)}")
-
-        if is_final:
+    try:
+        while True:
             if verbose:
-                print(f"[Level {level}] Target grid size reached ({nx}x{ny}x{nz}). Simulation complete.")
-            # Keep only the final potential and residual for the returned result.
+                print(f"\n[Level {level}] Solving on {nx}x{ny}x{nz} grid...")
+
+            physical = physical_params
+            if physical:
+                domain_nm = physical["domain_nm"]
+                origin = physical["origin_fraction"]
+                tip_mask, tip_pos, base_pos = build_downward_pointing_tip(
+                    nx, ny, nz, tip_z, R, r_tip, aspect_ratio, verbose=False,
+                    tip_z_nm=physical.get("tip_z_nm"),
+                    R_nm=physical.get("R_nm"),
+                    r_tip_nm=physical.get("r_tip_nm"),
+                    domain_nm=domain_nm,
+                    center_fraction=origin,
+                )
+            else:
+                tip_mask, tip_pos, base_pos = build_downward_pointing_tip(
+                    nx, ny, nz, tip_z, R, r_tip, aspect_ratio, verbose=False
+                )
+
+            boundary_mask = np.zeros((nx, ny, nz), dtype=bool)
+
+            gate_masks = []
+            gate_values = []
+            if Vgate is not None and isinstance(Vgate, (list, tuple)) and len(Vgate) > 0:
+                for g in Vgate:
+                    mask_g = make_gate_mask(nx, ny, nz, g)
+                    val_g  = float(g.get("Vgate_val", 0.0))
+                    phi[mask_g] = val_g
+                    boundary_mask[mask_g] = True
+                    gate_masks.append(mask_g)
+                    gate_values.append(val_g)
+            else:
+                if isinstance(Vgate, dict):
+                    mask_g = make_gate_mask(nx, ny, nz, Vgate)
+                    val_g  = float(Vgate.get("Vgate_val", 0.0))
+                    phi[mask_g] = val_g
+                    boundary_mask[mask_g] = True
+                    gate_masks.append(mask_g)
+                    gate_values.append(val_g)
+
+            phi[tip_mask] = Vtip
+            boundary_mask[tip_mask] = True
+
+            if eps_r is None:
+                eps_reference = eps_reference_resolution
+                eps_reference_shape = (int(eps_reference), int(eps_reference), int(eps_reference)) if not isinstance(eps_reference, (list, tuple)) else tuple(int(v) for v in eps_reference)
+                eps_cell = generate_eps_level(
+                    phi.shape, blocks, reference_shape=eps_reference_shape,
+                    reference=eps_reference_mmap
+                )
+            else:
+                eps_cell = np.asarray(eps_r, dtype=np.float32)
+
+            if memory_tracking:
+                from .memory import track_memory, log_memory_usage
+                memory_context = track_memory()
+            else:
+                from contextlib import nullcontext
+                memory_context = nullcontext(None)
+
+            with memory_context as mem_tracker:
+                phi_solution, res_m = mg_3d_masked(Vtip, phi.copy(), boundary_mask,
+                                            damping=damping, nu1=nu1, nu2=nu2,
+                                            max_iter=max_iter, tol=tol,
+                                            verbose=verbose, eps_r=eps_cell, eps=eps,
+                                            mg_max_runtime=mg_max_runtime,
+                                            output_dir=output_dir,
+                                            plotting_enabled=plotting_enabled)
+
+            if memory_tracking:
+                log_memory_usage(f"main {nx}x{ny}x{nz}", mem_tracker.peak_gb, output_dir=output_dir)
+
+            logfile = os.path.join(output_dir, "mg_timing_log.csv")
+            os.makedirs(output_dir, exist_ok=True)
+            file_exists = os.path.isfile(logfile)
+            with open(logfile, "a", newline="") as f:
+                w = csv.writer(f)
+                if not file_exists:
+                    w.writerow(["level", "Nx", "Ny", "Nz", "time_sec"])
+                level_elapsed = MG_TIME.get("elapsed", 0.0)
+                w.writerow([level, nx, ny, nz, f"{level_elapsed:.6f}"])
+
+            is_final = (nx == nx_target and ny == ny_target and nz == nz_target)
+            if save_all_levels and level_name_prefix and nx >= 32 and not is_final:
+                level_base = os.path.splitext(level_name_prefix)[0]
+                level_name = f"{level_base}_level{nx}x{ny}x{nz}.npy"
+                level_path = os.path.join(output_dir, level_name)
+                n = 0
+                while os.path.exists(level_path):
+                    n += 1
+                    level_path = os.path.join(output_dir,
+                                              f"{os.path.splitext(level_name)[0]} ({n}).npy")
+                np.save(level_path, phi_solution)
+                print(f"  Saved level: {os.path.basename(level_path)}")
+
+            if is_final:
+                if verbose:
+                    print(f"[Level {level}] Target grid size reached ({nx}x{ny}x{nz}). Simulation complete.")
+                # Keep only the final potential and residual for the returned result.
+                del eps_cell
+                if "tip_mask" in locals():
+                    # tip_mask is returned, so do not delete it.
+                    pass
+                if "gate_masks" in locals():
+                    del gate_masks
+                if "gate_values" in locals():
+                    del gate_values
+                gc.collect()
+                break
+
+            old_nx, old_ny, old_nz = nx, ny, nz
+            nx = min(nx * 2, nx_target)
+            ny = min(ny * 2, ny_target)
+            nz = min(nz * 2, nz_target)
+
+            scale = (
+                nx / old_nx,
+                ny / old_ny,
+                nz / old_nz,
+            )
+            phi = zoom(phi_solution, scale, order=1)
+            # scipy's zoom can round by one node for non-integer scale factors.
+            # Enforce the exact target shape so rectangular targets such as
+            # 256x256x100 are represented without silently changing nz.
+            phi = phi[:nx, :ny, :nz]
+            if phi.shape != (nx, ny, nz):
+                pad = np.full((nx, ny, nz), float(phi[-1, -1, -1]), dtype=phi.dtype)
+                pad[:phi.shape[0], :phi.shape[1], :phi.shape[2]] = phi
+                phi = pad
+            # Release all per-level arrays that are no longer needed before the next level.
+            # Only the interpolated potential is retained for the next solve.
+            del phi_solution
+            del res_m
             del eps_cell
+            del boundary_mask
             if "tip_mask" in locals():
-                # tip_mask is returned, so do not delete it.
-                pass
+                del tip_mask
             if "gate_masks" in locals():
                 del gate_masks
             if "gate_values" in locals():
                 del gate_values
             gc.collect()
-            break
 
-        old_nx, old_ny, old_nz = nx, ny, nz
-        nx = min(nx * 2, nx_target)
-        ny = min(ny * 2, ny_target)
-        nz = min(nz * 2, nz_target)
+            if verbose:
+                print(f"[Level {level}] Converged. Upscaling to {nx}x{ny}x{nz} using factors {scale}...")
 
-        scale = (
-            nx / old_nx,
-            ny / old_ny,
-            nz / old_nz,
-        )
-        phi = zoom(phi_solution, scale, order=1)
-        # scipy's zoom can round by one node for non-integer scale factors.
-        # Enforce the exact target shape so rectangular targets such as
-        # 256x256x100 are represented without silently changing nz.
-        phi = phi[:nx, :ny, :nz]
-        if phi.shape != (nx, ny, nz):
-            pad = np.full((nx, ny, nz), float(phi[-1, -1, -1]), dtype=phi.dtype)
-            pad[:phi.shape[0], :phi.shape[1], :phi.shape[2]] = phi
-            phi = pad
-        # Release all per-level arrays that are no longer needed before the next level.
-        # Only the interpolated potential is retained for the next solve.
-        del phi_solution
-        del res_m
-        del eps_cell
-        del boundary_mask
-        if "tip_mask" in locals():
-            del tip_mask
-        if "gate_masks" in locals():
-            del gate_masks
-        if "gate_values" in locals():
-            del gate_values
-        gc.collect()
-
-        if verbose:
-            print(f"[Level {level}] Converged. Upscaling to {nx}x{ny}x{nz} using factors {scale}...")
-
-        level += 1
-
-    if eps_reference_path is not None:
-        release_eps_reference(eps_reference_path, eps_reference_mmap)
-        eps_reference_path = None
-        eps_reference_mmap = None
-        gc.collect()
+            level += 1
+    finally:
+        # The reference is a per-simulation resource.  Always release it,
+        # including when a solver, logger, or output operation raises.
+        if eps_reference_path is not None:
+            release_eps_reference(eps_reference_path, eps_reference_mmap)
+            eps_reference_path = None
+            eps_reference_mmap = None
+            gc.collect()
 
     results = {
         'phi': phi_solution,

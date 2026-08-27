@@ -250,6 +250,13 @@ def plot_convergence(csv_file=None, output_dir=".", show=True):
     Plot convergence history from residual CSV.
     If csv_file is None, use RESIDUAL_CSV.
     """
+    if not show:
+        # Headless/batch runs still call this helper so the solver can share
+        # its convergence-exit paths. Do not allocate a Matplotlib figure
+        # when plotting is disabled; callers may invoke the solver directly
+        # without a surrounding ``plt.close('all')`` cleanup.
+        return
+
     if csv_file is None:
         csv_file = RESIDUAL_CSV
 
