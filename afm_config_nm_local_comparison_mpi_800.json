@@ -1,0 +1,17 @@
+{
+  "extends": "afm_config_nm_local_comparison_serial_800.json",
+  "cpu_threads": 2,
+  "mpi": {
+    "enabled": true,
+    "process_grid": [2, 2, 2],
+    "initial_grid_level": 64,
+    "damping": 1.0,
+    "require_convergence": true,
+    "residual_check_interval": 10,
+    "memory_fraction": 0.8,
+    "max_cut_gather_gib": 1.0,
+    "planner_ranks": 8,
+    "planner_ranks_per_node": 8,
+    "planner_node_memory_gib": 24
+  }
+}

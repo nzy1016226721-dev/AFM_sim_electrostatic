@@ -1,0 +1,31 @@
+{
+  "extends": "afm_config_nm_serial_control_2048.json",
+  "cpu_threads": 16,
+  "grid_resolution": {
+    "nx": 800,
+    "ny": 800,
+    "nz": 800
+  },
+  "initial_grid_level": 64,
+  "v_start": -1.0,
+  "v_stop": -1.0,
+  "v_step": 0.5,
+  "movement": {
+    "start_nm": [0.0, 0.0, 20.0],
+    "end_nm": [0.0, 0.0, 20.0],
+    "spacing_nm": 7.071,
+    "cascade": true
+  },
+  "mg_max_runtime": 3000.0,
+  "zoom_simulation": {
+    "enabled": false
+  },
+  "plotting": {
+    "enabled": false,
+    "disable_in_non_ide": true
+  },
+  "memory_tracking": true,
+  "memory_live_interval_seconds": 10.0,
+  "save_full": true,
+  "save_cut": true
+}

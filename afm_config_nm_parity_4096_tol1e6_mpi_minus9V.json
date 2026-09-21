@@ -1,0 +1,23 @@
+{
+  "extends": "afm_config_nm_parity_4096_tol1e6_base.json",
+  "v_start": -9,
+  "v_stop": -9,
+  "cpu_threads": 1,
+  "memory_tracking": false,
+  "mpi": {
+    "enabled": true,
+    "process_grid": [
+      8,
+      8,
+      8
+    ],
+    "damping": 1,
+    "require_convergence": true,
+    "residual_check_interval": 10,
+    "memory_fraction": 0.92,
+    "max_cut_gather_gib": 1,
+    "planner_ranks": 512,
+    "planner_ranks_per_node": 32,
+    "planner_node_memory_gib": 128
+  }
+}

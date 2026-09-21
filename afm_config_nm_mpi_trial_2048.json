@@ -1,0 +1,33 @@
+{
+  "extends": "afm_config_nm_production_2048.json",
+  "cpu_threads": 2,
+  "v_start": -1.0,
+  "v_stop": -1.0,
+  "v_step": 0.5,
+  "movement": {
+    "start_nm": [0.0, 0.0, 20.0],
+    "end_nm": [0.0, 0.0, 20.0],
+    "spacing_nm": 7.071,
+    "cascade": true
+  },
+  "plotting": {
+    "enabled": false,
+    "disable_in_non_ide": true
+  },
+  "save_full": false,
+  "save_cut": true,
+  "save_cut_reference": "movement_center",
+  "save_cut_box_nm": [-50.0, 50.0, -50.0, 50.0, -20.0, 80.0],
+  "mpi": {
+    "enabled": true,
+    "process_grid": [4, 4, 4],
+    "damping": 1.0,
+    "require_convergence": true,
+    "residual_check_interval": 10,
+    "memory_fraction": 0.8,
+    "max_cut_gather_gib": 8.0,
+    "planner_ranks": 64,
+    "planner_ranks_per_node": 32,
+    "planner_node_memory_gib": 256
+  }
+}

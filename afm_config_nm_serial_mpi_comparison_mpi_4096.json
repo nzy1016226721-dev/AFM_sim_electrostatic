@@ -1,0 +1,17 @@
+{
+  "extends": "afm_config_nm_serial_mpi_comparison_4096_base.json",
+  "cpu_threads": 1,
+  "memory_tracking": false,
+  "mpi": {
+    "enabled": true,
+    "process_grid": [8, 8, 8],
+    "damping": 1.0,
+    "require_convergence": true,
+    "residual_check_interval": 10,
+    "memory_fraction": 0.92,
+    "max_cut_gather_gib": 1.0,
+    "planner_ranks": 512,
+    "planner_ranks_per_node": 32,
+    "planner_node_memory_gib": 128
+  }
+}

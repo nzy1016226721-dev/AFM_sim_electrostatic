@@ -1,0 +1,16 @@
+{
+  "extends": "afm_config_nm_serial_mpi_comparison_2048_base.json",
+  "cpu_threads": 2,
+  "mpi": {
+    "enabled": true,
+    "process_grid": [4, 4, 4],
+    "damping": 1.0,
+    "require_convergence": true,
+    "residual_check_interval": 10,
+    "memory_fraction": 0.8,
+    "max_cut_gather_gib": 1.0,
+    "planner_ranks": 64,
+    "planner_ranks_per_node": 32,
+    "planner_node_memory_gib": 256
+  }
+}

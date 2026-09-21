@@ -1,0 +1,7 @@
+{
+  "extends": "afm_config_nm_parity_4096_tol1e6_base.json",
+  "v_start": -9,
+  "v_stop": -9,
+  "cpu_threads": 192,
+  "memory_tracking": true
+}

@@ -1,12 +1,16 @@
-/*
-!/afm_package/
-!/afm_package/**
-!/.gitignore
-
-# Exclude generated/binary data inside the package
-afm_package/*.npy
-afm_package/*.npz
-afm_package/outputs/
-
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.numba_cache/
+outputs/
+output/
+output_*/
+archive_old/
+*.npy
+*.npz
+*.out
+*.err
+*.log
+residual_history.csv
+mg_timing_log.csv
+memory_usage_log.csv

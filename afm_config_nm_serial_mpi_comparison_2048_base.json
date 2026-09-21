@@ -1,0 +1,28 @@
+{
+  "extends": "afm_config_nm_serial_control_2048.json",
+  "res_tol_main": 1e-5,
+  "res_tol_zoom": 1e-5,
+  "mg_max_runtime": 3300.0,
+  "v_start": -1.0,
+  "v_stop": -1.0,
+  "v_step": 0.5,
+  "movement": {
+    "start_nm": [0.0, 0.0, 20.0],
+    "end_nm": [0.0, 0.0, 20.0],
+    "spacing_nm": 7.071,
+    "cascade": true
+  },
+  "zoom_simulation": {
+    "enabled": false
+  },
+  "plotting": {
+    "enabled": false,
+    "disable_in_non_ide": true
+  },
+  "memory_tracking": true,
+  "memory_live_interval_seconds": 30.0,
+  "save_full": false,
+  "save_cut": true,
+  "save_cut_reference": "movement_center",
+  "save_cut_box_nm": [-50.0, 50.0, -50.0, 50.0, -20.0, 80.0]
+}

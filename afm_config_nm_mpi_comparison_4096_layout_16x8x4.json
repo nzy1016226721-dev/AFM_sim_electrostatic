@@ -1,0 +1,6 @@
+{
+  "extends": "afm_config_nm_mpi_comparison_4096_base.json",
+  "mpi": {
+    "process_grid": [16, 8, 4]
+  }
+}

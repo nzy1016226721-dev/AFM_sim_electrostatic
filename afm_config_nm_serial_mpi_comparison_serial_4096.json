@@ -1,0 +1,4 @@
+{
+  "extends": "afm_config_nm_serial_mpi_comparison_4096_base.json",
+  "cpu_threads": 192
+}
