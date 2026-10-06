@@ -1,0 +1,27 @@
+UPGRADES for extracting cuts of potential:
+------------------------------------------------------------
+
+[X] First it should ask for the folder where the .npy files are
+
+[X] Then it should ask for which files you want to run
+	-Should be allowed to list any number from those shown, like 1-5, 8, 25, ...
+
+[X] Then ask if you want planes or lines 
+
+[X]Then ask for what axes it wants you to slice
+	right now you can only do one at a time.
+
+[X] Then ask for where on those axes you want to slice
+	-user inputs a list of coordinates in real units: 125nm, 156nm
+		under the hood it is converting the given units to relate to grid dimensions (Nx/Ny/Nz)
+
+[X] The user input coordinates for the lines and slices are checked for validity
+	if coordinates are invalid the whole thing just exits
+
+[X] Output names and titles should be informative, can also be customized
+
+[X] Plot all the lines together with colour mapping and smart legends
+
+[X] Option to save the plot
+
+[X] User can specify x-axis range on line plots

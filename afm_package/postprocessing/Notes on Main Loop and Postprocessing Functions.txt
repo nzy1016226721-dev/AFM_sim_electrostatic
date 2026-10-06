@@ -1,0 +1,46 @@
+field_lines.py only works for the xz plane, could be fixed if necessary
+field_lines.py just plots every single .npy file in the folder, the title's are also messed up.
+
+capacitance sanity check plots might not work if the "qd" can't be found, what this function even does in terms of needing to find a qd is unclear.
+
+
+how main_loop.py makes the potential slice plot:
+
+results = {'phi': phi_solution..., and
+phi = results["phi"] = phi_solution
+phi_solution is the first output of mg_3d_masked -> which might have two ways of functioning, outputs V, "the converged potential"
+
+                    fig = plot_phi_plane(phi, results['boundary_mask'], plane=(True, True, z_frac))
+                    ax = fig.axes[0] if fig.axes else None
+                    if ax is not None:
+                        ax.set_title(ax.get_title() + f"\n{tag}")
+                    plt.show()
+                    plt.close(fig)
+
+where the function it calls in the first line is: (for the z case)
+
+    	nx, ny, nz = phi_matrix.shape
+    	px, py, pz = plane
+
+    	if px is True and py is True and isinstance(pz, float):
+        	iz = int(pz * (nz - 1))      -------------> effectively 0.5*(256-1)
+        	data2d = phi_matrix[:, :, iz].T
+        	mask2d = boundary_mask[:, :, iz].T if boundary_mask is not None else None
+        	label = f"XY plane at z={pz:.2f}"
+
+Note that here iz = int() and it is not rounded first
+-------------------
+-------------------
+How plot_npy.py works:
+
+When called the run_all.py file asks for a specific path to the .npy file one wishes to analyze. Then one is asked to specify which axis to slice.
+
+a postprocessing function loads the data to be plotted from "phi" which itself is phi = np.load(phi_file) where phi_file is just the .npy file that was generated
+
+Loads the .npy file, saving a matrix of the potentials of the box as "phi" and the size of each axis as nx, ny, nz.
+
+For the purpose of generating the Electric field it defines infinitesimals with which to calculate the gradient of the potential (unsure if this is arbitrary or must = box size)
+
+Defines the arrays x, y, and z, where the former 2 are defined from -0.5 to 0.5, the latter from 0 to 1, each in steps of nx, ny, nz, respectively. These are used as the x-axis for the plots
+
+Defines infinitesimals ix, iy, iz, to find the exact midpoints of the phi matrix, these are hardcoded to multiply eg. 0.5*(nx-1) 
