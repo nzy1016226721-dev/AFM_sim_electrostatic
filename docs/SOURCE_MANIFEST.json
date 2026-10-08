@@ -443,8 +443,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 3803,
-      "sha256": "84f13af2d7201651920853443d32f0cb622b1f22d7421eb4fd3dbc07488c79c6"
+      "bytes": 3863,
+      "sha256": "4c2fd14055fc83c45b6c627798726ff4a64ebb3b504d44d0412b2bf1cbc00bd9"
     },
     {
       "path": "requirements-mpi.txt",
@@ -458,8 +458,8 @@
     },
     {
       "path": "run_all.py",
-      "bytes": 8567,
-      "sha256": "ead6b755ea4ba001cd49215e700788b5831290bdce846fd62edf938ae1b3c9d3"
+      "bytes": 9109,
+      "sha256": "58279e0899e0b4bad01ed0ed28ec73730a72dcdc57e5b9c765c7e68f9ddc6a4e"
     },
     {
       "path": "run_mpi.py",
@@ -630,6 +630,36 @@
       "path": "UPGRADE_ABORT_20261006.md",
       "bytes": 1657,
       "sha256": "5b4c071cb6263217c24c9709ebca6d7400e04781c6734a57d824a76676adf23b"
+    },
+    {
+      "path": "docs/MPI_PLOTTING.md",
+      "bytes": 3363,
+      "sha256": "9eef6f5a45b4f85bd47d98f8400ebcbb5fa4e1bb65352aa111d052ecfcd0709a"
+    },
+    {
+      "path": "postprocessing/potential_plot_data.py",
+      "bytes": 8723,
+      "sha256": "9271228458d0401c3ec5d8f96076f2c01e54dc33cfd17b52e31619b552533918"
+    },
+    {
+      "path": "postprocessing/bulk_potential_plotter.py",
+      "bytes": 5340,
+      "sha256": "77aa77dbb0611fa6aaff7921695e2b3a6159abaca65690a8a698a786254cdd76"
+    },
+    {
+      "path": "postprocessing/single_plane_plotter.py",
+      "bytes": 893,
+      "sha256": "03331d9bb08a312b1dcfbb53264e47334202c2a5cc5bc4ddbe1e9f0e773bc6b7"
+    },
+    {
+      "path": "postprocessing/line_profile_plotter.py",
+      "bytes": 4051,
+      "sha256": "33a79794988d59229e07211bbb80f8d40a1f92dab7d6ba38c127c22e7fa1da6d"
+    },
+    {
+      "path": "tests/test_mpi_plotting.py",
+      "bytes": 6178,
+      "sha256": "c9c90436ecfe15c88bdac3d4aa064ed2af2e1e2e7f1f571f61ce6e0f1db4e61d"
     }
   ]
 }

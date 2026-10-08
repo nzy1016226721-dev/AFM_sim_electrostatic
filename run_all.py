@@ -138,7 +138,9 @@ def run_postprocessing():
     print("4. Plot electric field lines")
     print("5. 3D potential map")
     print("6. Capacitance sanity check")
-    choice = input("Select option (1-6, or Enter to return): ").strip()
+    print("7. Comparative and custom potential plotting")
+    print("8. Interactive potential line profile")
+    choice = input("Select option (1-8, or Enter to return): ").strip()
 
     if choice == "1":
         from postprocessing.plot_npy import plot_afm_from_npy
@@ -173,6 +175,14 @@ def run_postprocessing():
     elif choice == "6":
         from postprocessing.capacitance_sanity_check import main as sanity_multi_main
         sanity_multi_main()
+    elif choice == "7":
+        from postprocessing.bulk_potential_plotter import bulk_potential_plots
+        bulk_potential_plots()
+    elif choice == "8":
+        from postprocessing.line_profile_plotter import line_profile_plotter
+        plane = input("Plane (xy/xz/yz) [xy]: ").strip().lower() or "xy"
+        at_nm = float(input("Fixed-plane coordinate (nm): ").strip())
+        line_profile_plotter(plane=plane, at_nm=at_nm)
 
 
 def _run_single_config(config_path, *, config_dir=".", plotting_override=None,

@@ -13,6 +13,7 @@ or experimental default.
 - [Distributed solver and dated parity evidence](README_MPI.md)
 - [Configuration and job catalogue](docs/CONFIGS_AND_JOBS.md)
 - [Module/API navigation](API_Docstrings.md)
+- [MPI-compatible potential plotting](docs/MPI_PLOTTING.md)
 - [October 7 source consolidation](docs/PACKAGE_CONSOLIDATION_20261007.md)
 - [Cancelled upgrade status](UPGRADE_ABORT_20261006.md)
 
