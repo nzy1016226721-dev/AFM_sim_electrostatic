@@ -1,5 +1,21 @@
 # AFM Simulation Package — Change Log
 
+## 2026-10-07 — Complete standalone source distribution
+
+- Published the restored standalone modules, postprocessing, tests and distinct
+  launch scripts previously omitted from `afm-parallelized-mpi`. No numerical
+  source, JSON preset, executable script or test behaviour changed.
+- Archived two superseded comparison drivers, the stale August consolidation
+  notice and a historical manual upload manifest; removed embedded legacy
+  serial source/caches and the old v15 ZIP from the active Git payload.
+- Added package-local navigation, current configuration/job documentation,
+  LF text attributes and a SHA-256 source manifest. Originals remain in a
+  verified local archive and the old Git revision remains in history.
+- The October 4–6 numerical upgrade remains cancelled; this is packaging and
+  documentation maintenance, not renewed solver/certified-refinement work.
+
+See [the consolidation record](docs/PACKAGE_CONSOLIDATION_20261007.md).
+
 ## 2026-09-14 - Pyramid AFM tip with square base
 
 - Changed the default AFM tip cross-section from the legacy circular cone disk

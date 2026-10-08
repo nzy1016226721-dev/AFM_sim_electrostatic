@@ -1,0 +1,8 @@
+{
+  "extends": "afm_config_mpi_parity_64.json",
+  "mpi": {
+    "process_grid": [4, 2, 1],
+    "planner_ranks": 8,
+    "planner_ranks_per_node": 8
+  }
+}

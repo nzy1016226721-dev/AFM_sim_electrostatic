@@ -1,0 +1,20 @@
+{
+  "extends": "../../afm_config_nm_serial_control_2048.json",
+  "cpu_threads": 8,
+  "grid_resolution": {
+    "nx": 128,
+    "ny": 128,
+    "nz": 128
+  },
+  "initial_grid_level": 8,
+  "memory_tracking": false,
+  "plotting": {
+    "enabled": false,
+    "disable_in_non_ide": true
+  },
+  "zoom_simulation": {
+    "enabled": false
+  },
+  "save_full": true,
+  "save_cut": false
+}

@@ -14,3 +14,8 @@ archive_old/
 residual_history.csv
 mg_timing_log.csv
 memory_usage_log.csv
+.venv/
+venv/
+.afm_*_env/
+*.zip
+afm_package/

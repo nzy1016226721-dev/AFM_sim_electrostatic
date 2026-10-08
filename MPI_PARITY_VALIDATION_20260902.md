@@ -59,11 +59,11 @@ Total reported case runtime was 894.00 s for shared memory and 508.19 s for
 MPI. Measured 800³ peaks were 10.136 GiB for the shared-memory process and
 9.542 GiB summed over all MPI ranks (1.207 GiB maximum per rank).
 
-Evidence files:
+Evidence files (moved on this laptop to `archive_old/outputs/`, checked 2026-09-27):
 
-- `outputs/local_mpi_comparison_800/comparison_800.json`
-- `outputs/local_mpi_comparison_800/serial/afm_config_nm_local_comparison_serial_800/`
-- `outputs/local_mpi_comparison_800/mpi/afm_config_nm_local_comparison_mpi_800/`
+- `archive_old/outputs/local_mpi_comparison_800/comparison_800.json`
+- `archive_old/outputs/local_mpi_comparison_800/serial/afm_config_nm_local_comparison_serial_800/`
+- `archive_old/outputs/local_mpi_comparison_800/mpi/afm_config_nm_local_comparison_mpi_800/`
 
 The complete Python regression suite reports 47 passing tests; both relevant
 Bash launchers pass `bash -n`.

@@ -1,9 +1,10 @@
 # Distributed-memory MPI AFM solver
 
-For workspace context, current continuation and numerical contracts, start with
-[the developer handoff](../docs/AI_HANDOFF.md). This guide includes dated
-benchmark/deployment history; job-state statements in those sections are not
-live status. Hierarchy and regression-count notes were reviewed2026-09-18.
+Start with the [package guide](README.md) and
+[configuration contract](DOCUMENTATION.md). This guide retains dated
+benchmark/deployment history; job-state, upload and resource statements in
+those sections are not live status. The October 7, 2026 publication completes
+the source distribution without changing numerical code or configurations.
 
 `run_mpi.py` splits **one global electrostatic grid** over a three-dimensional
 Cartesian MPI communicator. It is not a voltage-sweep task farm: every MPI
@@ -79,7 +80,12 @@ The reproducible 800³ inputs and launcher are
 an inter-node Fir result. A newly uploaded large configuration must still pass
 a representative Fir comparison before being described as cluster-validated.
 
-## Cleanup and retained artifacts
+## Historical cleanup and retained artifacts
+
+The paths and job-state statements below describe the earlier development
+workspace, not files included in this source-only Git checkout. The current
+packaging boundary is recorded in
+[the consolidation record](docs/PACKAGE_CONSOLIDATION_20261007.md).
 
 Generated benchmark trees, historical Fir job outputs and scheduler logs,
 one-off transfer bundles, status notes, upload helpers, and Python bytecode
@@ -288,8 +294,9 @@ per CPU accounting ratio and writes scheduler stdout/stderr only under
 
 ## Prepared 4096³ decomposition-parity trial
 
-`jobs/run_afm_mpi_comparison_4096.sh` is staged locally but has not been
-uploaded or submitted. In one one-hour allocation it runs the same one-position,
+`jobs/run_afm_mpi_comparison_4096.sh` is included in the complete source
+distribution. Its earlier preparation note did not establish a completed
+runtime test. In one one-hour allocation it runs the same one-position,
 one-voltage 4096³ case with 8x8x8 and 16x8x4 Cartesian decompositions, saves the
 same 201³ physical cut from each, and fails unless the cuts are bitwise
 identical. The deliberately different internal boundaries test halo exchange

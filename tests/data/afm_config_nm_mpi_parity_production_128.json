@@ -1,0 +1,33 @@
+{
+  "extends": "../../afm_config_nm_serial_control_2048.json",
+  "cpu_threads": 1,
+  "grid_resolution": {
+    "nx": 128,
+    "ny": 128,
+    "nz": 128
+  },
+  "memory_tracking": false,
+  "plotting": {
+    "enabled": false,
+    "disable_in_non_ide": true
+  },
+  "zoom_simulation": {
+    "enabled": false
+  },
+  "save_full": true,
+  "save_cut": false,
+  "mpi": {
+    "enabled": true,
+    "process_grid": [2, 2, 2],
+    "initial_grid_level": 8,
+    "damping": 1.0,
+    "max_iter": 60000,
+    "require_convergence": true,
+    "residual_check_interval": 10,
+    "memory_fraction": 0.8,
+    "max_cut_gather_gib": 1.0,
+    "planner_ranks": 8,
+    "planner_ranks_per_node": 8,
+    "planner_node_memory_gib": 16
+  }
+}
