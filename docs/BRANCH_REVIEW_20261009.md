@@ -1,5 +1,11 @@
 # GitHub branch review — October 9, 2026
 
+**Later same-day update:** The user approved enhanced-branch retirement and the
+adapted plotting merge. Enhanced is deleted with recoverable ancestry/backup;
+the [integration record](PLOTTING_MERGE_20261009.md) owns the current plotting
+status. The comparison below is the earlier pre-cleanup/pre-merge snapshot,
+not a request to repeat cleanup or overwrite later work.
+
 ## Scope and snapshot
 
 The user requested comparison of GitHub branches, cleanup recommendations and

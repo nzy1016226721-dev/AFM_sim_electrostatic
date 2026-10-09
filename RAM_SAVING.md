@@ -95,6 +95,13 @@ These read saved fields; they do not alter outputs or launch MPI/QTCAD. Retain
 actual coordinate sidecars when moving cuts. Nominal 100-nm requests snap/clip
 to existing nodes and need not span exactly 100 nm.
 
+The adapted plotting merge also provides local post-menu options7/8 and the
+historical plotting function names, backed by the same reader/renderers.
+Optional JSONs validate saved coordinates instead of replacing them; a missing
+receipt needs explicit retained-node bounds. Selected data are copied before
+mapping close and repeated figure saves preserve existing files. See
+[local plotting contracts and compatibility changes](docs/MPI_PLOTTING.md).
+
 ## Evidence and recovery
 
 The sealed physical 512/1024 trials matched every original float32 NPY byte

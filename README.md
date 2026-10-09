@@ -11,6 +11,8 @@ not imply a Fir deployment or a combined/hybrid numerical port.
 
 ## Start here
 
+- [Adapted plotting merge, provenance and compatibility changes](docs/PLOTTING_MERGE_20261009.md)
+- [Local-only post-run menus and plotting functions](docs/MPI_PLOTTING.md)
 - [Configuration, numerical conventions and output contract](DOCUMENTATION.md)
 - [RAM-saving defaults, alternatives and local visualization](RAM_SAVING.md)
 - [RAM validation, measured tradeoffs and limitations](docs/RAM_VALIDATION_20261009.md)

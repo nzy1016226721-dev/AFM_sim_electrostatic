@@ -1,5 +1,19 @@
 # AFM Simulation Package — Change Log
 
+## 2026-10-09 — Adapted local-only plotting merge
+
+- Consolidated the plotting-integration history onto the maintained RAM release;
+  compatibility functions/menu options now share the local reader/renderers.
+- Made saved coordinate receipts authoritative, with optional matching-JSON
+  validation, explicit missing-receipt bounds and source-provenance checks.
+- Enforced local-only use before menu prompts; closed mappings on success/error,
+  copied only selected lines/planes and preserved existing saved figures.
+- Added movement/inheritance, coordinate, lifecycle, safe-save and import tests.
+  Selected-plane profiles accumulate float64 samples with a100000-point cap;
+  stored float32 potentials and all numerical/configuration/job bytes are unchanged.
+- Pinned metadata LF endings and regenerated the complete source manifest.
+- See [integration and compatibility record](docs/PLOTTING_MERGE_20261009.md).
+
 ## 2026-10-09 — Source release and GitHub branch review
 
 - Prepared the tested local RAM-default package for the maintained

@@ -45,30 +45,65 @@ class PotentialData:
         require_local()
         self.path = Path(path).resolve()
         self.phi = np.load(self.path, mmap_mode="r",allow_pickle=False)
+        self._closed = False
+        self.coordinate_receipt = None
         try:
             if self.phi.ndim != 3 or min(self.phi.shape) < 2 or self.phi.dtype.kind != "f":
                 raise ValueError("Expected a three-dimensional real floating-point potential")
-            if bounds_nm is None:
-                sidecar = Path(str(self.path)+".coords.json")
-                if not sidecar.is_file():
-                    raise ValueError("No coordinate receipt: supply --bounds with FIRST/LAST RETAINED NODE coordinates in nm; cut filenames alone are insufficient")
-                record = json.loads(sidecar.read_text(encoding="utf-8"))
-                if (record.get("format") != "afm-local-coordinates-v1"
+            sidecar = Path(str(self.path)+".coords.json")
+            if sidecar.is_file():
+                record = json.loads(sidecar.read_text(encoding="utf-8-sig"))
+                if (not isinstance(record,dict) or record.get("format") != "afm-local-coordinates-v1"
                         or record.get("array_order") != "xyz"
                         or record.get("potential_units") != "V"
                         or record.get("coordinate_units") != "nm"
-                        or tuple(record.get("shape",[])) != self.phi.shape):
+                        or record.get("shape") != list(self.phi.shape)):
                     raise ValueError("Coordinate receipt does not match this xyz potential")
-                bounds_nm = record["node_bounds_nm"]
+                recorded_bounds = np.asarray(record["node_bounds_nm"],dtype=np.float64)
+                if bounds_nm is not None:
+                    supplied = np.asarray(bounds_nm,dtype=np.float64)
+                    if supplied.shape != (6,) or recorded_bounds.shape != (6,) or not np.allclose(
+                            supplied,recorded_bounds,rtol=0,atol=1e-9):
+                        raise ValueError("Explicit bounds does not match the saved coordinate receipt")
+                bounds_nm = recorded_bounds
+                self.coordinate_receipt = record
+            elif bounds_nm is None:
+                raise ValueError("No coordinate receipt: supply --bounds with FIRST/LAST RETAINED NODE coordinates in nm; cut filenames alone are insufficient")
             self.bounds = np.asarray(bounds_nm,dtype=np.float64)
             if self.bounds.shape != (6,) or not np.isfinite(self.bounds).all():
                 raise ValueError("Six finite node bounds are required")
             if any(self.bounds[2*i+1] <= self.bounds[2*i] for i in range(3)):
                 raise ValueError("Node bounds must be strictly increasing")
+            if self.coordinate_receipt is not None:
+                self._validate_source_provenance()
             self.axes = tuple(np.linspace(self.bounds[2*i], self.bounds[2*i+1], n) for i,n in enumerate(self.phi.shape))
         except BaseException:
             self.close()
             raise
+
+    def _validate_source_provenance(self):
+        record = self.coordinate_receipt
+        keys = ("source_shape","source_bounds_nm","source_index_slices")
+        if not any(key in record for key in keys):
+            return  # A minimal explicit-node receipt remains supported.
+        if not all(key in record for key in keys):
+            raise ValueError("Coordinate receipt source provenance is incomplete")
+        shape,indices = record["source_shape"],record["source_index_slices"]
+        bounds = np.asarray(record["source_bounds_nm"],dtype=np.float64)
+        if (not isinstance(shape,list) or len(shape)!=3 or any(type(n) is not int or n<2 for n in shape)
+                or not isinstance(indices,list) or len(indices)!=3 or bounds.shape!=(6,) or not np.isfinite(bounds).all()):
+            raise ValueError("Coordinate receipt source provenance is invalid")
+        expected = []
+        for axis,(n,pair) in enumerate(zip(shape,indices)):
+            if (not isinstance(pair,list) or len(pair)!=2 or any(type(v) is not int for v in pair)
+                    or not 0<=pair[0]<pair[1]<=n or pair[1]-pair[0]!=self.phi.shape[axis]):
+                raise ValueError("Coordinate receipt source indices does not match saved shape")
+            lo,hi = bounds[2*axis:2*axis+2]
+            if hi<=lo:
+                raise ValueError("Coordinate receipt source bounds must increase")
+            expected.extend((lo+(hi-lo)*pair[0]/(n-1),lo+(hi-lo)*(pair[1]-1)/(n-1)))
+        if not np.allclose(expected,self.bounds,rtol=0,atol=1e-9):
+            raise ValueError("Coordinate receipt node bounds does not match source indices")
 
     def __enter__(self):
         return self
@@ -80,8 +115,12 @@ class PotentialData:
         mapping = getattr(self.phi,"_mmap",None)
         if mapping is not None:
             mapping.close()
+        self._closed = True
 
     def index(self,axis,position):
+        require_local()
+        if self._closed:
+            raise ValueError("Potential reader is closed; open a fresh context")
         a = self.axes[axis]
         if not np.isfinite(position) or not a[0] <= position <= a[-1]:
             raise ValueError(f"{position} nm outside {'xyz'[axis]}=[{a[0]}, {a[-1]}] nm")
@@ -137,6 +176,9 @@ class PotentialData:
         return distance,result
 
     def sanity(self):
+        require_local()
+        if self._closed:
+            raise ValueError("Potential reader is closed; open a fresh context")
         count,nonfinite,total,minimum,maximum = 0,0,0.0,float("inf"),-float("inf")
         for i in range(self.phi.shape[0]):
             # Do not fault the entire full-grid file into one long-lived mmap

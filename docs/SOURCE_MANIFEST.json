@@ -1,16 +1,19 @@
 {
-  "format": "afm-standalone-source-manifest-v2",
+  "format": "afm-standalone-source-manifest-v3",
   "date": "2026-10-09",
-  "scope": "Source-only lossless RAM-default release for afm-parallelized-mpi; no Fir deployment or independent-engine synchronization.",
-  "baseline_github_commit": "7ec0e647d35332362d73f4bcf75cc56f550abefe",
-  "candidate_source_index_sha256": "767b85854138085811a84bdeca706c597d165f19bf934c22294526ee13e1e78c",
+  "scope": "Adapted local-only plotting merge; lossless RAM solver/config/job bytes unchanged.",
+  "merge_parents": [
+    "3b7ba49af617150e752748a7c34296de27392f36",
+    "2be34adda9ea3948f82287a4b5cfa26b62631986"
+  ],
   "hash_algorithm": "SHA-256",
   "manifest_excludes_itself": true,
+  "candidate_source_index_sha256": "767b85854138085811a84bdeca706c597d165f19bf934c22294526ee13e1e78c",
   "files": [
     {
       "path": ".gitattributes",
-      "bytes": 196,
-      "sha256": "73eec209aca78aeab31f592abde0ae7c575a2c9bd75302dc75658e078a43dacc"
+      "bytes": 246,
+      "sha256": "c54d96d84f96d25b4fbc54eb7c7e63d7ad9ccee4573f2f5763a519b40f53a655"
     },
     {
       "path": ".gitignore",
@@ -24,8 +27,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "bytes": 36080,
-      "sha256": "4c4328d7a4d871f1e77bbfbe18bb772226abeea37c12da52f4bef218ef717924"
+      "bytes": 36996,
+      "sha256": "0592419b0a92df4bff0f238b10a1af49eebb5e8ba54fa10544a234a5e53077a4"
     },
     {
       "path": "DOCUMENTATION.md",
@@ -39,13 +42,13 @@
     },
     {
       "path": "RAM_SAVING.md",
-      "bytes": 6537,
-      "sha256": "7277b821dba2328081e017a20bc6066efaf93bf8a9bdf5236015ebac04656b56"
+      "bytes": 6988,
+      "sha256": "8e1fd2296fcd0254c97cfe25514c0c502bfc2dcb5048f38efc8e14f4bb83b4f5"
     },
     {
       "path": "README.md",
-      "bytes": 4561,
-      "sha256": "aee57f211729ac1e5d50e3736d854cd817f0f3003d9f8b02fde207417bd973f5"
+      "bytes": 4734,
+      "sha256": "ea420739fbada44e8ce1b8ec8efc82513c8ca5d4f275b6adcf79b9c54419ec9b"
     },
     {
       "path": "README_ALLIANCE.md",
@@ -219,8 +222,8 @@
     },
     {
       "path": "docs/BRANCH_REVIEW_20261009.md",
-      "bytes": 5841,
-      "sha256": "586b75970aa506b46c0389fa841703802d75e41f845373bc3fdcc5f5042236d2"
+      "bytes": 6212,
+      "sha256": "06cf5e74fb6c915c725c8a3889c6028f0335b31e56a3e373eba7cf8f8b51ad28"
     },
     {
       "path": "docs/CONFIGS_AND_JOBS.md",
@@ -228,9 +231,19 @@
       "sha256": "c664b028863d70f184db85ad6997e5d64c7cbde45c16c99d1f7787c1b8e2b7d1"
     },
     {
+      "path": "docs/MPI_PLOTTING.md",
+      "bytes": 4750,
+      "sha256": "e194ee38f7c6ca7a1a04f12f46132cbad960585aa7a4d6ccc4f4778740373afb"
+    },
+    {
       "path": "docs/PACKAGE_CONSOLIDATION_20261007.md",
       "bytes": 5938,
       "sha256": "1bae05db55e05df16a3275fd3d4a84d685bf19b7dac72f639f81acfecbd6e897"
+    },
+    {
+      "path": "docs/PLOTTING_MERGE_20261009.md",
+      "bytes": 5501,
+      "sha256": "d6c2b2f88118a13fff4ef16316cadbb49488e0f74e96136263f567c674e0d95a"
     },
     {
       "path": "docs/RAM_FIRST_PROVENANCE.md",
@@ -449,18 +462,18 @@
     },
     {
       "path": "local_visualization/bulk_potential_plotter.py",
-      "bytes": 4800,
-      "sha256": "42452a686c12e2be9c34936a6b91d5dadb00dfd6c405d8c9f67b474268a015b4"
+      "bytes": 6603,
+      "sha256": "7c655d1239ec9374513bda37c9d8c75bab6ac570fccdd2794379277113d9a20d"
     },
     {
       "path": "local_visualization/coordinates.py",
-      "bytes": 2150,
-      "sha256": "65e95cf6c8c07526f10c0b3d8b91fcf02829c0bba03d9a55e8fc722740b42863"
+      "bytes": 5334,
+      "sha256": "75050916e93d4b00fa98dff4216778461ff5a1ca21477ac643722f98ab1778eb"
     },
     {
       "path": "local_visualization/data.py",
-      "bytes": 7591,
-      "sha256": "16c03d52875542c44ef958f1cd7be256adf0e376359c25159b3fc7155a403af3"
+      "bytes": 10222,
+      "sha256": "43721251a803168d4635012bd81090584012e570acb340d7bc92178cf3b4410a"
     },
     {
       "path": "local_visualization/eric_conductivity.py",
@@ -469,8 +482,8 @@
     },
     {
       "path": "local_visualization/line_profile_plotter.py",
-      "bytes": 2135,
-      "sha256": "ebde6fc82c21e764a71d26f0be2de03ce2e72a6a15726e2ff30fee73c3745140"
+      "bytes": 5999,
+      "sha256": "9d7517e2baa85c96feeb00ee774e45a2b6f7d5ef4a835565042d8bd934d80db0"
     },
     {
       "path": "local_visualization/single_plane_plotter.py",
@@ -481,6 +494,11 @@
       "path": "postprocessing/__init__.py",
       "bytes": 0,
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "postprocessing/bulk_potential_plotter.py",
+      "bytes": 4461,
+      "sha256": "7653757c201bdbf4620551056bacd692d63fd41554e49befd101d58a944c5dc6"
     },
     {
       "path": "postprocessing/capacitance_sanity_check.py",
@@ -508,6 +526,11 @@
       "sha256": "74e86e9b025f10e0f931da86842856326005fc44dbc9c2554b5f656005864071"
     },
     {
+      "path": "postprocessing/line_profile_plotter.py",
+      "bytes": 1164,
+      "sha256": "326f6857bbd4dca4d626640f0e0d2fd719f03bf9ea98684364ae09ea667c7b80"
+    },
+    {
       "path": "postprocessing/npy_utils.py",
       "bytes": 3664,
       "sha256": "f925aa06d49d0962fd8be0e8880863701b8ed7cbb72bfe03fa8cb904b01d17ba"
@@ -523,9 +546,19 @@
       "sha256": "57d5fd0bf7933659f7765e7d71dbd08204a0b3b444a40875e8a54b1561e10292"
     },
     {
+      "path": "postprocessing/potential_plot_data.py",
+      "bytes": 4399,
+      "sha256": "faafc9fb28a07fc1efaa50b8f7ec88562abdd2f8856e71ae6212800e8be84618"
+    },
+    {
       "path": "postprocessing/sanity_check.py",
       "bytes": 7128,
       "sha256": "48f5847f05f895b2eb10740fd1b381b7a5b58f1010f537bfef0a1fff804b7e7d"
+    },
+    {
+      "path": "postprocessing/single_plane_plotter.py",
+      "bytes": 924,
+      "sha256": "d80944a5d0afdee5e461bdddd02d22e8cee9f1b711249de27ef816492ac84669"
     },
     {
       "path": "requirements-mpi.txt",
@@ -539,8 +572,8 @@
     },
     {
       "path": "run_all.py",
-      "bytes": 8567,
-      "sha256": "ead6b755ea4ba001cd49215e700788b5831290bdce846fd62edf938ae1b3c9d3"
+      "bytes": 9179,
+      "sha256": "b15d8ee4dac6f27067e8f510b6760f81b8121b03fd31db70978643c785ec0207"
     },
     {
       "path": "run_mpi.py",
@@ -723,6 +756,11 @@
       "sha256": "181cdd560f370ffb53f56de71bff2770acc1067011e5fdb77bdbc3400da135e8"
     },
     {
+      "path": "tests/test_mpi_plotting.py",
+      "bytes": 6833,
+      "sha256": "f199ba69d657eb3ba8c3f03a5323ab8c9f16dbbf01b2cbb1b87e7d4c50462658"
+    },
+    {
       "path": "tests/test_numerics.py",
       "bytes": 3118,
       "sha256": "df94fad2123c075725722a66ebe6b23445bc0edd68bd35bc429531fc04c84e76"
@@ -731,6 +769,11 @@
       "path": "tests/test_parallel.py",
       "bytes": 6237,
       "sha256": "3ce7e73e5d99af451eedbc5c2638144c9514e668677d732bcf29ce5707634026"
+    },
+    {
+      "path": "tests/test_plotting_contracts.py",
+      "bytes": 12429,
+      "sha256": "73c781bf711ee3eeda15666d926f2cde18fa8c147ec62bc128450bf3ea348a32"
     },
     {
       "path": "tests/test_ram_defaults.py",
