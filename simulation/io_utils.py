@@ -301,6 +301,8 @@ def save_potential_physical_cut(phi, center_nm, box_offsets_nm, field_bounds_nm,
     cut = np.asarray(arr[tuple(slices)])
     path = _unique_output_path(output_dir, filename)
     np.save(path, cut)
+    from .output_coordinates import write_coordinate_receipt
+    write_coordinate_receipt(path, arr.shape, bounds, slices)
     actual_bounds = tuple(actual)
     print(
         f"Saved physical cut to {path}: shape={cut.shape}, "

@@ -1,10 +1,14 @@
 {
-  "extends": "afm_config_nm_serial_mpi_comparison_4096_base.json",
   "cpu_threads": 1,
+  "extends": "afm_config_nm_serial_mpi_comparison_4096_base.json",
   "memory_tracking": false,
   "mpi": {
     "enabled": true,
-    "process_grid": [8, 8, 8],
+    "process_grid": [
+      8,
+      8,
+      8
+    ],
     "damping": 1.0,
     "require_convergence": true,
     "residual_check_interval": 10,
@@ -13,5 +17,11 @@
     "planner_ranks": 512,
     "planner_ranks_per_node": 32,
     "planner_node_memory_gib": 128
+  },
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar",
+  "plotting": {
+    "enabled": false
   }
 }

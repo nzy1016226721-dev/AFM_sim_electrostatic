@@ -6,6 +6,7 @@ from copy import deepcopy
 import json
 from pathlib import Path
 
+from .config_defaults import apply_solver_defaults
 from .coordinates import normalize_config
 
 
@@ -60,7 +61,7 @@ def load_afm_config(
         visited.pop()
         return merged
 
-    merged = load_one(path, 0)
+    merged = apply_solver_defaults(load_one(path, 0))
     return str(path), normalize_config(merged) if normalize else merged
 
 

@@ -6,8 +6,8 @@
   "aspect_ratio": 4,
   "R_nm": 5,
   "r_tip_nm": 10000,
-  "res_tol_main": 0.000001,
-  "res_tol_zoom": 0.000001,
+  "res_tol_main": 1E-06,
+  "res_tol_zoom": 1E-06,
   "v_start": -1,
   "v_stop": -1,
   "v_step": 0.5,
@@ -120,6 +120,11 @@
       ]
     }
   ],
+  "initial_grid_level": 64,
+  "save_all_levels": false,
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar",
   "blocks_nm": [
     {
       "eps_val": 1
@@ -866,7 +871,5 @@
         32
       ]
     }
-  ],
-  "initial_grid_level": 64,
-  "save_all_levels": false
+  ]
 }

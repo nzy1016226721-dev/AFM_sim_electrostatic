@@ -6,17 +6,27 @@
   "aspect_ratio": 2.0,
   "R_nm": 1.0,
   "r_tip_nm": 4.0,
-  "res_tol_main": 1e-6,
+  "res_tol_main": 1E-06,
   "v_start": -1.0,
   "v_stop": -1.0,
   "v_step": 1.0,
   "mg_max_runtime": 120.0,
   "movement": {
-    "start_nm": [0.0, 0.0, 4.0],
-    "end_nm": [0.0, 0.0, 4.0],
+    "start_nm": [
+      0.0,
+      0.0,
+      4.0
+    ],
+    "end_nm": [
+      0.0,
+      0.0,
+      4.0
+    ],
     "spacing_nm": 1.0
   },
-  "fixed_blocks": [1],
+  "fixed_blocks": [
+    1
+  ],
   "grid_resolution": {
     "nx": 64,
     "ny": 64,
@@ -29,7 +39,11 @@
     "enabled": false
   },
   "coordinate_system": {
-    "origin_fraction": [0.5, 0.5, 0.0]
+    "origin_fraction": [
+      0.5,
+      0.5,
+      0.0
+    ]
   },
   "epsilon_material": {
     "reference_resolution": 32
@@ -39,27 +53,19 @@
   "Vgate_nm": [
     {
       "Vgate_val": 0.0,
-      "z_range_nm": [0.0, 0.0]
-    }
-  ],
-  "blocks_nm": [
-    {
-      "eps_val": 1.0
-    },
-    {
-      "eps_val": 12.5,
-      "z_range_nm": [0.0, 3.3]
-    },
-    {
-      "eps_val": 15.0,
-      "x_range_nm": [-2.1, 1.8],
-      "y_range_nm": [-1.7, 2.2],
-      "z_range_nm": [3.3, 6.4]
+      "z_range_nm": [
+        0.0,
+        0.0
+      ]
     }
   ],
   "mpi": {
     "enabled": true,
-    "process_grid": [2, 2, 1],
+    "process_grid": [
+      2,
+      2,
+      1
+    ],
     "initial_grid_level": 8,
     "damping": 1.0,
     "max_iter": 60000,
@@ -70,5 +76,35 @@
     "planner_ranks": 4,
     "planner_ranks_per_node": 4,
     "planner_node_memory_gib": 8
-  }
+  },
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar",
+  "blocks_nm": [
+    {
+      "eps_val": 1.0
+    },
+    {
+      "eps_val": 12.5,
+      "z_range_nm": [
+        0.0,
+        3.3
+      ]
+    },
+    {
+      "eps_val": 15.0,
+      "x_range_nm": [
+        -2.1,
+        1.8
+      ],
+      "y_range_nm": [
+        -1.7,
+        2.2
+      ],
+      "z_range_nm": [
+        3.3,
+        6.4
+      ]
+    }
+  ]
 }

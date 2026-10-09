@@ -1,6 +1,17 @@
 {
+  "cpu_threads": 1,
   "extends": "afm_config_nm_mpi_comparison_4096_base.json",
   "mpi": {
-    "process_grid": [16, 8, 4]
+    "process_grid": [
+      16,
+      8,
+      4
+    ]
+  },
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar",
+  "plotting": {
+    "enabled": false
   }
 }

@@ -1,8 +1,8 @@
 {
+  "cpu_threads": 192,
   "extends": "afm_config_nm_parity_4096_tol1e6_base.json",
   "v_start": -1,
   "v_stop": -1,
-  "cpu_threads": 192,
   "solver_dtype": "float64",
   "initial_grid_level": 2048,
   "save_full": false,
@@ -15,5 +15,11 @@
       "2048": 10,
       "4096": 20
     }
+  },
+  "memory_mode": "standard",
+  "phi_update_mode": null,
+  "residual_accumulation": null,
+  "plotting": {
+    "enabled": false
   }
 }

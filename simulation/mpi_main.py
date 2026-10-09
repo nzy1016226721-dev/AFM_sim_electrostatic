@@ -143,6 +143,11 @@ def run_distributed_hierarchy(
     """Run all refinement levels for one voltage/position on every MPI rank."""
     mpi_cfg = cfg.get("mpi", {})
     field_dtype = resolve_solver_dtype(cfg.get("solver_dtype", "float32"))
+    from .ram_first import resolve_memory_mode, resolve_storage_options
+    memory_mode = resolve_memory_mode(cfg.get("memory_mode", "standard"))
+    resolve_storage_options(memory_mode, cfg.get("phi_update_mode"), cfg.get("residual_accumulation"))
+    if memory_mode in ("ram_first", "ram_compact") and field_dtype != np.float32:
+        raise ValueError("ram_first MPI never downgrades precision; select float32 explicitly")
     tolerance_mode = resolve_residual_tolerance_mode(
         cfg.get("residual_tolerance_mode", "absolute")
     )
@@ -164,9 +169,14 @@ def run_distributed_hierarchy(
     final_decomposition = decomposition.for_shape(target)
 
     memory_fraction = float(mpi_cfg.get("memory_fraction", 0.80))
-    node_plan = verify_node_memory(
-        final_decomposition, memory_fraction, dtype=field_dtype
-    )
+    plan_kwargs = {}
+    if memory_mode in ("ram_first", "ram_compact"):
+        reference_value = cfg.get("epsilon_material",{}).get("reference_resolution",512)
+        plan_reference = ((int(reference_value),)*3 if not isinstance(reference_value,(list,tuple))
+                          else tuple(int(v) for v in reference_value))
+        plan_kwargs = dict(memory_mode=memory_mode,cpu_threads=int(cfg.get("cpu_threads",1)),reference_shape=plan_reference,
+                           phi_update_mode=cfg.get("phi_update_mode"), residual_accumulation=cfg.get("residual_accumulation"))
+    node_plan = verify_node_memory(final_decomposition, memory_fraction, dtype=field_dtype, **plan_kwargs)
     if decomposition.rank == 0:
         worst = max(int(item["estimated_bytes"]) for item in node_plan.values())
         print(
@@ -215,46 +225,48 @@ def run_distributed_hierarchy(
             aspect_ratio=cfg["aspect_ratio"],
             physical_params=cfg.get("_physical"),
             tip_shape=cfg.get("tip_shape", "pyramid"),
+            memory_mode=memory_mode,
         )
         eps_halo = build_distributed_epsilon_halo(
             decomp,
             cfg.get("blocks", []),
             reference_shape=reference_shape,
             dtype=field_dtype,
+            memory_mode=memory_mode,
+            work_directory=output_dir,
         )
-        faces = build_local_face_fields(eps_halo)
-        _log_memory_snapshot(
-            comm,
-            output_dir,
-            case_tag,
-            decomp.global_shape,
-            "faces_ready_with_epsilon",
-        )
-        del eps_halo
-        gc.collect()
-        _log_memory_snapshot(comm, output_dir, case_tag, decomp.global_shape, "solver_ready")
+        faces = build_local_face_fields(eps_halo) if memory_mode == "standard" else None
+        epsilon_cells = eps_halo if memory_mode in ("ram_first", "ram_compact") else None
+        try:
+            _log_memory_snapshot(
+                comm, output_dir, case_tag, decomp.global_shape,
+                "cells_ready_no_faces" if memory_mode in ("ram_first", "ram_compact") else "faces_ready_with_epsilon",
+            )
+            del eps_halo
+            gc.collect()
+            _log_memory_snapshot(comm, output_dir, case_tag, decomp.global_shape, "solver_ready")
 
-        diagnostic_iterations = diagnostic_iteration_limit(
-            cfg.get("diagnostic"),
-            decomp.global_shape,
-            solver_dtype=field_dtype,
-        )
-        field, report = solve_distributed_level(
-            field,
-            mask,
-            fixed_values,
-            faces,
-            omega=float(mpi_cfg.get("damping", 1.0)),
-            tol=float(cfg.get("res_tol_main", 5e-5)),
-            # Fixed iteration caps are deliberately ignored by the MPI solver;
-            # preserve the legacy value only for a clear compatibility notice.
-            max_iter=mpi_cfg.get("max_iter"),
-            max_runtime=cfg.get("mg_max_runtime"),
-            cpu_threads=int(cfg.get("cpu_threads", 1)),
-            output_dir=output_dir,
-            residual_check_interval=int(mpi_cfg.get("residual_check_interval", 10)),
-            diagnostic_iterations=diagnostic_iterations,
-        )
+            diagnostic_iterations = diagnostic_iteration_limit(
+                cfg.get("diagnostic"), decomp.global_shape, solver_dtype=field_dtype,
+            )
+            field, report = solve_distributed_level(
+                field, mask, fixed_values, faces,
+                omega=float(mpi_cfg.get("damping", 1.0)),
+                tol=float(cfg.get("res_tol_main", 5e-5)),
+                # Preserve the ignored legacy cap, not a new stopping rule.
+                max_iter=mpi_cfg.get("max_iter"),
+                max_runtime=cfg.get("mg_max_runtime"),
+                cpu_threads=int(cfg.get("cpu_threads", 1)),
+                output_dir=output_dir,
+                residual_check_interval=int(mpi_cfg.get("residual_check_interval", 10)),
+                diagnostic_iterations=diagnostic_iterations,
+                epsilon_cells=epsilon_cells,
+                phi_update_mode=cfg.get("phi_update_mode"),
+                residual_accumulation=cfg.get("residual_accumulation"),
+            )
+        finally:
+            if memory_mode == "ram_compact":
+                epsilon_cells.close()
         report["shape"] = decomp.global_shape
         report["solver_dtype"] = field_dtype.name
         report["residual_tolerance_mode"] = tolerance_mode
@@ -323,7 +335,7 @@ def run_distributed_hierarchy(
 
         new_shape = _next_shape(decomp.global_shape, target)
         new_decomposition = decomp.for_shape(new_shape)
-        del mask, fixed_values, faces
+        del mask, fixed_values, faces, epsilon_cells
         gc.collect()
         if decomp.rank == 0:
             print(f"[MPI level {level}] prolongating to {new_shape}")
@@ -452,7 +464,12 @@ def batch_main_mpi(
             )
             saved = []
             if bool(cfg.get("save_full", False)):
-                saved.append(save_distributed_npy(field, npy_name, output_dir=output_dir))
+                full_path = save_distributed_npy(field, npy_name, output_dir=output_dir,
+                                                 memory_mode=cfg.get("memory_mode","standard"))
+                saved.append(full_path)
+                if rank == 0:
+                    from .output_coordinates import write_coordinate_receipt
+                    write_coordinate_receipt(full_path, shape, field_bounds_nm)
             if bool(cfg.get("save_cut", False)):
                 cut_name = resolution_tagged_cut_filename(npy_name, shape)
                 cut_path, _ = save_distributed_physical_cut(
@@ -463,6 +480,7 @@ def batch_main_mpi(
                     filename=cut_name,
                     output_dir=output_dir,
                     max_root_bytes=max_cut_bytes,
+                    memory_mode=cfg.get("memory_mode","standard"),
                 )
                 if cut_path:
                     saved.append(cut_path)

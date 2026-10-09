@@ -277,7 +277,9 @@ class DistributedField:
         return self.decomposition.owned(self.data)
 
 
-def estimate_rank_peak_bytes(counts: Sequence[int], dtype=np.float32) -> int:
+def estimate_rank_peak_bytes(counts: Sequence[int], dtype=np.float32, *,
+                             memory_mode="standard", cpu_threads=1,
+                             phi_update_mode=None, residual_accumulation=None) -> int:
     """Conservative peak for the distributed solver's persistent/scratch arrays."""
     dtype = np.dtype(dtype)
     if dtype not in (np.dtype(np.float32), np.dtype(np.float64)):
@@ -295,6 +297,28 @@ def estimate_rank_peak_bytes(counts: Sequence[int], dtype=np.float32) -> int:
     surfaces = 4 * (
         ly * lz + (lx + 2) * lz + (lx + 2) * (ly + 2)
     )
+    if memory_mode in ("ram_first", "ram_compact"):
+        from .ram_first import resolve_storage_options
+        _, accumulation = resolve_storage_options(memory_mode, phi_update_mode, residual_accumulation)
+        if dtype != np.dtype(np.float32):
+            raise ValueError("ram_first estimates require float32")
+        # Two fields conservatively cover interpolation (the solver keeps ONE).
+        # Retain worst-case fixed values, both temporary geometry masks,
+        # exact epsilon, three old planes/worker, reusable halos and bounded IO.
+        planes = 3*min(int(cpu_threads),lx)*(ly+2)*(lz+2)
+        if memory_mode == "ram_compact":
+            # All-unique planes can occupy the original full cell volume.
+            # Count this worst case, packed mask, fixed prefixes, per-plane IO,
+            # row workspace and JIT; compression estimates are not a guarantee.
+            return int(4*(2*halo+eps_halo+owned+surfaces+planes)
+                       +lx*((ly*lz+7)//8)+8*(lx+1)+4*(lx+1)+24*lx
+                       +16*1024**2+256*1024**2
+                       +(4*owned if accumulation == "array" else 0))
+        return int(4*(2*halo+eps_halo+owned+surfaces+planes)
+                   +2*BOOL_BYTES*owned+8*1024**2+256*1024**2
+                   +(4*owned if accumulation == "array" else 0))
+    if memory_mode != "standard":
+        raise ValueError("unknown memory mode")
     return int(
         float_bytes * (2 * halo + eps_halo + x_faces + y_faces + z_faces + owned)
         + BOOL_BYTES * owned
@@ -317,6 +341,11 @@ def verify_node_memory(
     safety_fraction: float = 0.80,
     *,
     dtype=np.float32,
+    memory_mode="standard",
+    cpu_threads=1,
+    reference_shape=(512,512,512),
+    phi_update_mode=None,
+    residual_accumulation=None,
 ) -> dict:
     """Collectively reject a rank layout whose estimated peak exceeds node RAM."""
     if not 0.1 <= float(safety_fraction) <= 0.95:
@@ -327,9 +356,18 @@ def verify_node_memory(
         node_total = int(psutil.virtual_memory().total)
     except Exception:
         node_total = 0
+    estimated = estimate_rank_peak_bytes(decomposition.counts, dtype=dtype,
+                                         memory_mode=memory_mode, cpu_threads=cpu_threads,
+                                         phi_update_mode=phi_update_mode, residual_accumulation=residual_accumulation)
+    if memory_mode in ("ram_first", "ram_compact") and decomposition.rank == 0:
+        # Rank-zero coarse epsilon staging is still global up to the reference
+        # mesh. Count reference residency, the largest staged coarse field,
+        # and a generous slab allowance; do not conceal this serial MPI stage.
+        coarse_cells = tuple(min(n-1,int(r)) for n,r in zip(decomposition.global_shape,reference_shape))
+        estimated += 4*(math.prod(reference_shape)+math.prod(coarse_cells))+32*1024**2
     record = (
         socket.gethostname(),
-        estimate_rank_peak_bytes(decomposition.counts, dtype=dtype),
+        estimated,
         node_total,
         decomposition.rank,
     )
@@ -448,6 +486,8 @@ def build_distributed_epsilon_halo(
     *,
     reference_shape: Sequence[int] = (512, 512, 512),
     dtype=np.float32,
+    memory_mode="standard",
+    work_directory=None,
 ) -> np.ndarray:
     """Build the serial-compatible epsilon halo for one distributed rank.
 
@@ -469,6 +509,11 @@ def build_distributed_epsilon_halo(
     if len(ref_shape) != 3 or any(v < 2 for v in ref_shape):
         raise ValueError("epsilon reference_shape must contain three values >= 2")
     cell_shape = tuple(int(v) - 1 for v in decomposition.global_shape)
+    if memory_mode == "ram_compact":
+        if dtype != np.dtype(np.float32):
+            raise ValueError("ram_compact requires float32 epsilon")
+        from .compact_storage import build_distributed_compact
+        return build_distributed_compact(decomposition,blocks,reference_shape=ref_shape,directory=work_directory)
     if not all(target <= reference for target, reference in zip(cell_shape, ref_shape)):
         return np.asarray(rasterize_epsilon_halo(
             decomposition.global_shape,
@@ -483,7 +528,12 @@ def build_distributed_epsilon_halo(
     error = None
     if rank == 0:
         try:
-            full_level = generate_eps_level(
+            level_generator = generate_eps_level
+            if memory_mode == "ram_first":
+                from .materials_bounded import generate_eps_level_bounded
+                def level_generator(*args, **kwargs):
+                    return generate_eps_level_bounded(*args, directory=work_directory, **kwargs)
+            full_level = level_generator(
                 decomposition.global_shape,
                 blocks,
                 reference_shape=ref_shape,
@@ -654,13 +704,17 @@ def apply_fixed_geometry(
     aspect_ratio: float,
     physical_params: dict | None,
     tip_shape: str = "pyramid",
+    memory_mode="standard",
 ) -> tuple[np.ndarray, np.ndarray, float, float]:
     """Apply local gate/tip Dirichlet values and return mask + fixed values."""
     from .io_utils import gate_slices
 
     decomp = field.decomposition
     owned = field.owned
-    mask = np.zeros(decomp.counts, dtype=bool)
+    compact = memory_mode == "ram_compact"
+    if compact:
+        from .compact_storage import PackedMask,TipPredicate
+    mask = PackedMask(decomp.counts) if compact else np.zeros(decomp.counts, dtype=bool)
     gates = []
     if isinstance(Vgate, dict):
         gates = [Vgate]
@@ -674,7 +728,17 @@ def apply_fixed_geometry(
         )
         if all(s is not None for s in local):
             owned[local] = owned.dtype.type(gate.get("Vgate_val", 0.0))
-            mask[local] = True
+            if compact:
+                mask.mark_box(local)
+            else:
+                mask[local] = True
+
+    if compact:
+        tip=TipPredicate(decomp.global_shape,starts=decomp.starts,counts=decomp.counts,
+            tip_z=tip_z,R=R,r_tip=r_tip,aspect_ratio=aspect_ratio,
+            physical_params=physical_params,tip_shape=tip_shape)
+        tip.apply(field.data,mask,owned.dtype.type(Vtip),offset=(1,1,1))
+        return mask,mask.fixed_values(field.data,(1,1,1)),tip.tip_pos,tip.base_pos
 
     tip_mask, tip_pos, base_pos = build_local_tip_mask(
         decomp,
@@ -687,7 +751,7 @@ def apply_fixed_geometry(
     )
     owned[tip_mask] = owned.dtype.type(Vtip)
     mask[tip_mask] = True
-    fixed_values = owned[mask].copy()
+    fixed_values = owned[mask]
     return mask, fixed_values, tip_pos, base_pos
 
 
@@ -898,27 +962,41 @@ def _apply_neumann_boundaries(array: np.ndarray, decomposition: DomainDecomposit
 def distributed_residual(
     field: DistributedField,
     mask: np.ndarray,
-    faces: tuple[np.ndarray, np.ndarray, np.ndarray],
+    faces: tuple[np.ndarray, np.ndarray, np.ndarray] | None,
+    epsilon_cells=None,
+    residual_accumulation="row_array",
+    residual_volume=None,
 ) -> tuple[float, float, int]:
     """Return global RMS/max residuals and the global free-node count."""
     MPI = _require_mpi()
     decomp = field.decomposition
-    row_sums = np.empty(decomp.counts[0], dtype=np.float64)
-    row_max = np.empty(decomp.counts[0], dtype=np.float64)
-    row_counts = np.empty(decomp.counts[0], dtype=np.int64)
-    _residual_rows(
-        field.data,
-        mask,
-        *faces,
-        *decomp.starts,
-        *decomp.global_shape,
-        row_sums,
-        row_max,
-        row_counts,
-    )
-    local_sum = float(np.sum(row_sums, dtype=np.float64))
-    local_max = float(np.max(row_max)) if row_max.size else 0.0
-    local_count = int(np.sum(row_counts, dtype=np.int64))
+    if epsilon_cells is not None:
+        from .ram_first import residual_cells_stats
+        compact = False
+        if not isinstance(epsilon_cells, np.ndarray):
+            from .compact_storage import PlaneEpsilon
+            compact = isinstance(epsilon_cells, PlaneEpsilon)
+        local_sum, local_max, local_count = residual_cells_stats(
+            field.data, epsilon_cells.kernel if compact else epsilon_cells,
+            mask.kernel_view() if compact else mask, decomp.starts, decomp.global_shape,
+            residual_accumulation, residual_volume, pairwise=True)
+    else:
+        row_sums = np.empty(decomp.counts[0], dtype=np.float64)
+        row_max = np.empty(decomp.counts[0], dtype=np.float64)
+        row_counts = np.empty(decomp.counts[0], dtype=np.int64)
+        _residual_rows(
+            field.data,
+            mask,
+            *faces,
+            *decomp.starts,
+            *decomp.global_shape,
+            row_sums,
+            row_max,
+            row_counts,
+        )
+        local_sum = float(np.sum(row_sums, dtype=np.float64))
+        local_max = float(np.max(row_max)) if row_max.size else 0.0
+        local_count = int(np.sum(row_counts, dtype=np.int64))
     global_sum = float(decomp.cart.allreduce(local_sum, op=MPI.SUM))
     global_max = float(decomp.cart.allreduce(local_max, op=MPI.MAX))
     global_count = int(decomp.cart.allreduce(local_count, op=MPI.SUM))
@@ -951,6 +1029,9 @@ def solve_distributed_level(
     output_dir: str,
     residual_check_interval: int = 10,
     diagnostic_iterations: int | None = None,
+    epsilon_cells=None,
+    phi_update_mode=None,
+    residual_accumulation=None,
 ) -> tuple[DistributedField, dict]:
     """Solve one distributed refinement level with global convergence tests.
 
@@ -961,9 +1042,39 @@ def solve_distributed_level(
     """
     decomp = field.decomposition
     rank = decomp.rank
-    configure_cpu_threads(cpu_threads)
+    actual_threads = configure_cpu_threads(cpu_threads)
     current = field.data
-    target = np.empty_like(current)
+    target = None
+    scratch = None
+    residual_volume = None
+    update_mode, accumulation = "buffered", "row_array"
+    compact = False
+    if epsilon_cells is not None and not isinstance(epsilon_cells, np.ndarray):
+        from .compact_storage import PlaneEpsilon, PackedMask, restore_fixed
+        compact = isinstance(epsilon_cells, PlaneEpsilon)
+    kernel_epsilon,kernel_mask,fixed_prefixes=epsilon_cells,mask,None
+    if epsilon_cells is not None:
+        from .ram_first import allocate_stream_scratch, jacobi_cells_in_place, resolve_storage_options
+        update_mode, accumulation = resolve_storage_options("ram_compact" if compact else "ram_first", phi_update_mode, residual_accumulation)
+        if current.dtype != np.float32 or epsilon_cells.dtype != np.float32:
+            raise ValueError("ram_first MPI requires float32 fields and epsilon")
+        if compact:
+            if not isinstance(mask,PackedMask):
+                mask=PackedMask.from_dense(mask)
+            if isinstance(fixed_values,tuple):
+                fixed_values,fixed_prefixes=fixed_values
+            else:
+                fixed_prefixes=mask.prefixes()
+            kernel_epsilon,kernel_mask=epsilon_cells.kernel,mask.kernel_view()
+        scratch = allocate_stream_scratch(current, mask, actual_threads)
+        if update_mode == "buffered":
+            target = np.empty_like(current)
+        if accumulation == "array":
+            residual_volume = np.empty(mask.shape, np.float32)
+    else:
+        from .ram_first import resolve_storage_options
+        resolve_storage_options("standard", phi_update_mode, residual_accumulation)
+        target = np.empty_like(current)
     decomp.exchange_halos(current)
     started = time.monotonic()
     residual = float("inf")
@@ -993,7 +1104,15 @@ def solve_distributed_level(
     iteration = 0
     while True:
         iteration += 1
-        if current.dtype == np.float64:
+        if epsilon_cells is not None:
+            destination = current
+            if update_mode == "buffered":
+                np.copyto(target, current)
+                destination = target
+            jacobi_cells_in_place(destination, kernel_epsilon, kernel_mask, decomp.starts,
+                                 decomp.global_shape, np.float32(omega), scratch)
+            target = destination
+        elif current.dtype == np.float64:
             _jacobi_owned_float64(
                 current,
                 target,
@@ -1014,8 +1133,12 @@ def solve_distributed_level(
                 np.float32(omega),
             )
         _apply_neumann_boundaries(target, decomp)
-        decomp.owned(target)[mask] = fixed_values
-        current, target = target, current
+        if compact:
+            restore_fixed(target,mask.bits,mask.shape,fixed_values,fixed_prefixes,(1,1,1))
+        else:
+            decomp.owned(target)[mask] = fixed_values
+        if epsilon_cells is None or update_mode == "buffered":
+            current, target = target, current
         decomp.exchange_halos(current)
         completed = iteration
         elapsed = time.monotonic() - started
@@ -1023,7 +1146,7 @@ def solve_distributed_level(
         check = iteration <= 5 or iteration % int(residual_check_interval) == 0
         if check:
             residual, residual_max, free_count = distributed_residual(
-                DistributedField(decomp, current), mask, faces
+                DistributedField(decomp, current), mask, faces, epsilon_cells, accumulation, residual_volume
             )
             if rank == 0:
                 _append_root_csv(
@@ -1037,7 +1160,7 @@ def solve_distributed_level(
         if diagnostic_iterations is not None and iteration >= diagnostic_iterations:
             if not check:
                 residual, residual_max, free_count = distributed_residual(
-                    DistributedField(decomp, current), mask, faces
+                    DistributedField(decomp, current), mask, faces, epsilon_cells, accumulation, residual_volume
                 )
                 if rank == 0:
                     _append_root_csv(
@@ -1055,7 +1178,7 @@ def solve_distributed_level(
         if max_runtime is not None and elapsed > float(max_runtime):
             if not check:
                 residual, residual_max, _ = distributed_residual(
-                    DistributedField(decomp, current), mask, faces
+                    DistributedField(decomp, current), mask, faces, epsilon_cells, accumulation, residual_volume
                 )
             reason = "time_limit"
             break
@@ -1088,6 +1211,14 @@ def solve_distributed_level(
         "residual": residual,
         "residual_max": residual_max,
         "reason": reason,
+        "memory_mode": "ram_compact" if compact else ("ram_first" if epsilon_cells is not None else "standard"),
+        "epsilon_storage_bytes": epsilon_cells.nbytes if compact else None,
+        "mask_storage_bytes": mask.nbytes if compact else None,
+        "stream_scratch_bytes": int(scratch.nbytes) if scratch is not None else 0,
+        "phi_update_mode": update_mode,
+        "residual_accumulation": accumulation,
+        "phi_buffer_bytes": int(current.nbytes) if update_mode == "buffered" else 0,
+        "residual_workspace_bytes": int(residual_volume.nbytes) if residual_volume is not None else 0,
     }
 
 
@@ -1235,7 +1366,9 @@ def prolongate_distributed(
 
 
 def rank_layout_table(
-    global_shape: Sequence[int], process_grid: Sequence[int], dtype=np.float32
+    global_shape: Sequence[int], process_grid: Sequence[int], dtype=np.float32,
+    *, memory_mode="standard", cpu_threads=1, reference_shape=(512,512,512),
+    phi_update_mode=None, residual_accumulation=None,
 ) -> list[dict[str, object]]:
     """Pure-Python layout/memory table used by tests and offline preflight."""
     shape = tuple(int(v) for v in global_shape)
@@ -1250,15 +1383,20 @@ def rank_layout_table(
                     for n, p, c in zip(shape, dims, (x, y, z))
                 ]
                 counts = tuple(item[1] for item in starts_counts)
+                peak = estimate_rank_peak_bytes(
+                    counts, dtype=dtype, memory_mode=memory_mode, cpu_threads=cpu_threads,
+                    phi_update_mode=phi_update_mode, residual_accumulation=residual_accumulation,
+                )
+                if rank == 0 and memory_mode in ("ram_first", "ram_compact"):
+                    coarse_cells = tuple(min(n-1,int(r)) for n,r in zip(shape,reference_shape))
+                    peak += 4*(math.prod(reference_shape)+math.prod(coarse_cells))+32*1024**2
                 rows.append(
                     {
                         "rank": rank,
                         "coords": (x, y, z),
                         "starts": tuple(item[0] for item in starts_counts),
                         "counts": counts,
-                        "estimated_peak_bytes": estimate_rank_peak_bytes(
-                            counts, dtype=dtype
-                        ),
+                        "estimated_peak_bytes": peak,
                     }
                 )
                 rank += 1

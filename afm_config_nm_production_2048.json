@@ -6,8 +6,8 @@
   "aspect_ratio": 4,
   "R_nm": 5,
   "r_tip_nm": 10000,
-  "res_tol_main": 1e-06,
-  "res_tol_zoom": 1e-06,
+  "res_tol_main": 1E-06,
+  "res_tol_zoom": 1E-06,
   "v_start": -1.0,
   "v_stop": -5.0,
   "v_step": 0.5,
@@ -59,7 +59,7 @@
   "plot_zoom_residuals": false,
   "output_dir_mode": "default",
   "plotting": {
-    "enabled": true,
+    "enabled": false,
     "disable_in_non_ide": true
   },
   "memory_tracking": true,
@@ -120,6 +120,9 @@
       ]
     }
   ],
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar",
   "blocks_nm": [
     {
       "eps_val": 1.0

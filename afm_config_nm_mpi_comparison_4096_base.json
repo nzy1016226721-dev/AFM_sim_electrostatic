@@ -1,6 +1,6 @@
 {
-  "extends": "afm_config_nm_serial_control_2048.json",
   "cpu_threads": 1,
+  "extends": "afm_config_nm_serial_control_2048.json",
   "grid_resolution": {
     "nx": 4096,
     "ny": 4096,
@@ -10,8 +10,16 @@
   "v_stop": -1.0,
   "v_step": 0.5,
   "movement": {
-    "start_nm": [0.0, 0.0, 20.0],
-    "end_nm": [0.0, 0.0, 20.0],
+    "start_nm": [
+      0.0,
+      0.0,
+      20.0
+    ],
+    "end_nm": [
+      0.0,
+      0.0,
+      20.0
+    ],
     "spacing_nm": 7.071,
     "cascade": true
   },
@@ -27,7 +35,14 @@
   "save_full": false,
   "save_cut": true,
   "save_cut_reference": "movement_center",
-  "save_cut_box_nm": [-50.0, 50.0, -50.0, 50.0, -20.0, 80.0],
+  "save_cut_box_nm": [
+    -50.0,
+    50.0,
+    -50.0,
+    50.0,
+    -20.0,
+    80.0
+  ],
   "mpi": {
     "enabled": true,
     "damping": 1.0,
@@ -38,5 +53,8 @@
     "planner_ranks": 512,
     "planner_ranks_per_node": 32,
     "planner_node_memory_gib": 128
-  }
+  },
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar"
 }

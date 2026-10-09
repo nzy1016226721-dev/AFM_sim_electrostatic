@@ -1,7 +1,12 @@
 # Configuration and job catalogue
 
-October 7, 2026 source inventory. The 27 root JSONs and all distinct executable
-job scripts are retained unchanged. Similar names are intentional variants,
+October 9, 2026 local update. The 27 root JSONs retain their physical/numerical
+settings and all distinct executable job scripts are unchanged. Normal configs
+now explicitly use `ram_compact`/`in_place`/`scalar` with solver plotting off.
+The two named float64 diagnostic presets explicitly use `standard` with null
+selectors. All six test fixtures and three new local examples record the same
+normal RAM policy. CPU threads are first and dielectric blocks last.
+See [RAM behavior and tradeoffs](../RAM_SAVING.md). Similar names are intentional variants,
 not duplicate physics to merge. Inherited settings resolve relative to each
 file. Read the [numerical contract](../DOCUMENTATION.md) before editing them.
 Submitting any script below launches actual work and requires suitable resources.
@@ -11,6 +16,7 @@ Submitting any script below launches actual work and requires suitable resources
 | Purpose | Configurations | Matching entry/script |
 | --- | --- | --- |
 | Canonical shared-memory sweep | [afm_config_nm.json](../afm_config_nm.json) | `run_all.py` / `jobs/run_afm.sh` |
+| Local RAM-saving ladder | [64](../configs/ram_compact_64_local.json), [512](../configs/ram_compact_512_local.json), [1024](../configs/ram_compact_1024_local.json) | `run_all.py`; explicit eight-thread, minus-one, native 1e-6 examples |
 | Production 2048/4096 | [2048](../afm_config_nm_production_2048.json), [4096](../afm_config_nm_production_4096.json) | `run_afm_nm_2048.sh`, `run_afm_nm_4096.sh` |
 | Shared-memory 2048 control | [control](../afm_config_nm_serial_control_2048.json) | `run_afm_serial_control_2048.sh` |
 | 2048 MPI trial | [trial](../afm_config_nm_mpi_trial_2048.json) | `run_afm_mpi_trial_2048.sh` |

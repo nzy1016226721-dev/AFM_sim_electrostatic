@@ -82,7 +82,17 @@ def _plan(args) -> int:
         else:
             dims = suggest_process_grid(ranks, target)
     validate_process_grid(dims, ranks, target)
-    rows = rank_layout_table(target, dims, dtype=field_dtype)
+    reference_value = cfg.get("epsilon_material", {}).get("reference_resolution", 512)
+    reference_shape = ((int(reference_value),)*3 if not isinstance(reference_value,(list,tuple))
+                       else tuple(int(v) for v in reference_value))
+    rows = rank_layout_table(
+        target, dims, dtype=field_dtype,
+        memory_mode=cfg.get("memory_mode", "standard"),
+        cpu_threads=int(cfg.get("cpu_threads", 1)),
+        reference_shape=reference_shape,
+        phi_update_mode=cfg.get("phi_update_mode"),
+        residual_accumulation=cfg.get("residual_accumulation"),
+    )
 
     ranks_per_node = int(args.ranks_per_node or mpi_cfg.get("planner_ranks_per_node", 1))
     if ranks_per_node < 1:

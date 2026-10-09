@@ -1,4 +1,10 @@
 {
+  "cpu_threads": 192,
   "extends": "afm_config_nm_serial_mpi_comparison_4096_base.json",
-  "cpu_threads": 192
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar",
+  "plotting": {
+    "enabled": false
+  }
 }

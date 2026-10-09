@@ -2,13 +2,19 @@
 
 A self-contained, source-only distribution of the maintained standalone
 `afm_parallel` package: solver, distributed-grid modules, post-processing,
-configs, Slurm launchers and small regressions. The October 2026 experimental
-upgrade was cancelled; this publication introduces no new numerical solver
-or experimental default.
+configs, Slurm launchers and small regressions. The maintained local package
+now defaults to lossless RAM-saving storage (`ram_compact`, in-place snapshot
+Jacobi, scalar residual reductions). See [RAM defaults and tradeoffs](RAM_SAVING.md).
+The separate October 4–6 V-cycle/certified-refinement upgrade remains cancelled.
+This October 9 source release includes the tested local RAM update; it does
+not imply a Fir deployment or a combined/hybrid numerical port.
 
 ## Start here
 
 - [Configuration, numerical conventions and output contract](DOCUMENTATION.md)
+- [RAM-saving defaults, alternatives and local visualization](RAM_SAVING.md)
+- [RAM validation, measured tradeoffs and limitations](docs/RAM_VALIDATION_20261009.md)
+- [GitHub branch comparison and consolidation recommendations](docs/BRANCH_REVIEW_20261009.md)
 - [Local/Alliance environment and launch instructions](README_ALLIANCE.md)
 - [Distributed solver and dated parity evidence](README_MPI.md)
 - [Configuration and job catalogue](docs/CONFIGS_AND_JOBS.md)
@@ -27,10 +33,10 @@ Run from this package root using a compatible Python environment:
 ```text
 python -m pip install -r requirements.txt
 python run_all.py --help
-python run_all.py tests/data/afm_config_mpi_smoke.json --no-plot --output-dir outputs/local_smoke
+python run_all.py configs/ram_compact_64_local.json --no-plot --output-dir outputs/local_smoke
 ```
 
-The last command is a tiny shared-memory smoke, not the canonical large sweep.
+The last command is a small shared-memory check, not the canonical large sweep.
 `run_all.py` uses shared memory even when the fixture contains an MPI section.
 Choose an explicit JSON: no-argument terminal discovery selects the newest
 AFM JSON by modification time, potentially a large/diagnostic preset.
@@ -54,7 +60,7 @@ python -m pip install pytest
 python -m pytest -q tests -k "not test_float64_diagnostic_runs_only_requested_iterations" --basetemp outputs/pytest_small
 ```
 
-This selection follows the restored package's float32 testing policy. Retained
+This selection follows the maintained package's float32 testing policy. Retained
 opt-in float64 memory-smoke settings/tests are historical diagnostics, not
 production defaults. Choose a fresh writable `--basetemp` if an older directory
 is protected or contains evidence to preserve.
@@ -70,6 +76,9 @@ legacy ZIPs are excluded. AFM checks require no QTCAD software or licence.
 run_all.py / run_mpi.py    shared-memory / distributed entry points
 simulation/              geometry, materials, iteration, MPI and saving
 postprocessing/          field analysis, NPY comparison and plotting
+local_post.py            Eric's local-only post-run visualization launcher
+local_visualization/     saved-field planes, lines and arbitrary profiles
+configs/                 RAM-saving 64/512/1024 local examples
 tests/                   small regressions and JSON fixtures
 jobs/                    setup, preflight, runs and comparison scripts
 docs/                    current catalogue and consolidation record

@@ -1,8 +1,8 @@
 # AFM configuration and numerical contract
 
-Reviewed against the restored standalone source on October 7, 2026. This is
-implemented behaviour, not the abandoned October 4–6 certified-refinement
-upgrade. See [README.md](README.md), [MPI instructions](README_MPI.md) and the
+Updated for the standalone lossless RAM default on October 9, 2026. This is
+implemented storage behaviour, not the abandoned October 4–6 certified-refinement
+upgrade. See [RAM policy](RAM_SAVING.md), [MPI instructions](README_MPI.md) and the
 [configuration/job catalogue](docs/CONFIGS_AND_JOBS.md).
 
 ## Launch and inheritance
@@ -17,7 +17,10 @@ explicit file for reproducibility, especially with large/diagnostic presets.
 `simulation.mpi_config.load_afm_config` resolves `extends` relative to its
 declaring JSON, recursively merges dictionaries and replaces rather than
 concatenates lists. Keep child and base files together; a child alone does
-not show the effective physical problem.
+not show the effective physical problem. After inheritance, absent storage keys
+default to `memory_mode=ram_compact`, `phi_update_mode=in_place` and
+`residual_accumulation=scalar`. Normal JSONs record these explicitly and disable
+solver-side plotting. See [alternatives and diagnostic exceptions](RAM_SAVING.md).
 
 ## Units, axes and geometry
 
@@ -46,22 +49,26 @@ full-field cuts. [Range tests](tests/test_config_defaults.py) define the
 supported omission cases; this is not a new movement algorithm.
 
 Generated JSONs put `cpu_threads` first and dielectric blocks last using
-`ordered_config_for_json`. Existing preset values and bytes are unchanged.
+`ordered_config_for_json`. Preset storage/plotting defaults have changed;
+physical/numerical values and job resource requests are preserved in a verified
+pre-promotion backup.
 
 ## Materials, hierarchy and convergence
 
 The equation is `div(epsilon * grad(phi)) = 0` with existing fixed masks and
 Dirichlet conditions. The maintained iteration is weighted **snapshot**
 Jacobi on a coarse-to-fine hierarchy, not a residual-correction V-cycle or
-in-place Gauss–Seidel method. Normal fields/coefficients are float32; oriented
-faces avoid six independent duplicated face arrays.
+in-place Gauss–Seidel method. Normal fields/coefficients are float32. The RAM
+default keeps one phi with bounded old-plane snapshots and reconstructs face
+coefficients from an exact deduplicated cell-epsilon plane bank. `standard`
+retains oriented face arrays as an explicit alternative.
 
 The original `epsilon_material.reference_resolution` policy remains:
 a high-resolution reference (512 by default) is volume-averaged for applicable
-coarse cells, with source-defined rasterization for finer grids. No palette
-compression, reduced epsilon precision, common finest-mesh policy or certified
-dielectric coarsening is enabled. [README_MPI.md](README_MPI.md) explains the
-bounded compatibility staging/local rasterization in MPI.
+coarse cells, with source-defined rasterization for finer grids. Lossless
+plane deduplication/packed masks change storage only; no reduced epsilon
+precision, common finest-mesh policy or certified dielectric coarsening is
+enabled. [README_MPI.md](README_MPI.md) explains bounded construction and MPI IO.
 
 Default starts depend on the largest target axis: through 512 start 8;
 larger targets below 2048 start 64. Large targets select 6–8 doubling levels:
@@ -80,11 +87,13 @@ normalizes **all** Dirichlet drives by a common maximum magnitude, converges
 that normalized problem, then rescales to physical volts. This pre-existing
 mode addresses voltage-dependent float32 floors; an absolute native residual
 and normalized residual are not interchangeable. Opt-in `solver_dtype:
-float64` / `float64_memory_smoke` diagnostics remain available; fixed diagnostic
+float64` / `float64_memory_smoke` diagnostics require explicit `memory_mode:
+standard` with null storage selectors; the named diagnostic presets provide
+that opt-out. Fixed diagnostic
 iterations are not convergence evidence.
 
-Original shared-memory zoom remains in `simulation/zoom.py`, disabled in the
-canonical JSON. MPI rejects enabled zoom because it uses full arrays. The
+Original shared-memory zoom remains in `simulation/zoom.py`, disabled in shipped
+normal JSONs and unsupported in RAM modes. MPI rejects enabled zoom because it uses full arrays. The
 cancelled upgrade's zoom removal was reverted.
 
 ## Fields, cuts and provenance

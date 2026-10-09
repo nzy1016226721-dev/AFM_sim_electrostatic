@@ -1,8 +1,8 @@
 {
+  "cpu_threads": 2,
   "extends": "afm_config_nm_parity_4096_tol1e6_base.json",
   "v_start": -1,
   "v_stop": -1,
-  "cpu_threads": 2,
   "solver_dtype": "float64",
   "initial_grid_level": 2048,
   "save_full": false,
@@ -17,7 +17,11 @@
   },
   "mpi": {
     "enabled": true,
-    "process_grid": [8, 8, 8],
+    "process_grid": [
+      8,
+      8,
+      8
+    ],
     "damping": 1,
     "require_convergence": false,
     "residual_check_interval": 10,
@@ -26,5 +30,11 @@
     "planner_ranks": 512,
     "planner_ranks_per_node": 16,
     "planner_node_memory_gib": 128
+  },
+  "memory_mode": "standard",
+  "phi_update_mode": null,
+  "residual_accumulation": null,
+  "plotting": {
+    "enabled": false
   }
 }

@@ -12,11 +12,21 @@
   "v_step": 1.0,
   "mg_max_runtime": 120.0,
   "movement": {
-    "start_nm": [0.0, 0.0, 4.0],
-    "end_nm": [0.0, 0.0, 4.0],
+    "start_nm": [
+      0.0,
+      0.0,
+      4.0
+    ],
+    "end_nm": [
+      0.0,
+      0.0,
+      4.0
+    ],
     "spacing_nm": 1.0
   },
-  "fixed_blocks": [1],
+  "fixed_blocks": [
+    1
+  ],
   "grid_resolution": {
     "nx": 16,
     "ny": 16,
@@ -29,34 +39,30 @@
     "enabled": false
   },
   "coordinate_system": {
-    "origin_fraction": [0.5, 0.5, 0.0]
+    "origin_fraction": [
+      0.5,
+      0.5,
+      0.0
+    ]
   },
   "save_full": true,
   "save_cut": false,
   "Vgate_nm": [
     {
       "Vgate_val": 0.0,
-      "z_range_nm": [0.0, 0.0]
-    }
-  ],
-  "blocks_nm": [
-    {
-      "eps_val": 1.0
-    },
-    {
-      "eps_val": 12.5,
-      "z_range_nm": [0.0, 3.0]
-    },
-    {
-      "eps_val": 15.0,
-      "x_range_nm": [-2.0, 2.0],
-      "y_range_nm": [-2.0, 2.0],
-      "z_range_nm": [3.0, 6.0]
+      "z_range_nm": [
+        0.0,
+        0.0
+      ]
     }
   ],
   "mpi": {
     "enabled": true,
-    "process_grid": [2, 1, 1],
+    "process_grid": [
+      2,
+      1,
+      1
+    ],
     "initial_grid_level": 8,
     "damping": 0.8,
     "max_iter": 2000,
@@ -67,5 +73,35 @@
     "planner_ranks": 2,
     "planner_ranks_per_node": 1,
     "planner_node_memory_gib": 4
-  }
+  },
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar",
+  "blocks_nm": [
+    {
+      "eps_val": 1.0
+    },
+    {
+      "eps_val": 12.5,
+      "z_range_nm": [
+        0.0,
+        3.0
+      ]
+    },
+    {
+      "eps_val": 15.0,
+      "x_range_nm": [
+        -2.0,
+        2.0
+      ],
+      "y_range_nm": [
+        -2.0,
+        2.0
+      ],
+      "z_range_nm": [
+        3.0,
+        6.0
+      ]
+    }
+  ]
 }

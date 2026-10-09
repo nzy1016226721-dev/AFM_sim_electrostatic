@@ -9,6 +9,7 @@ import os
 import re
 from copy import deepcopy
 
+from .config_defaults import apply_solver_defaults
 from .coordinates import ordered_config_for_json
 
 
@@ -44,7 +45,7 @@ def generate_tip_offset_configs(config_path, offsets_nm=None, overwrite=True):
     """
     config_path = os.fspath(config_path)
     with open(config_path, "r", encoding="utf-8") as f:
-        cfg = json.load(f)
+        cfg = apply_solver_defaults(json.load(f))
 
     if offsets_nm is None:
         offsets_nm = cfg.get("presimulation", {}).get("tip_z_offsets_nm", [0.0])

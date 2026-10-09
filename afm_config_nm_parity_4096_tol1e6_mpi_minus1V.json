@@ -1,8 +1,8 @@
 {
+  "cpu_threads": 1,
   "extends": "afm_config_nm_parity_4096_tol1e6_base.json",
   "v_start": -1,
   "v_stop": -1,
-  "cpu_threads": 1,
   "memory_tracking": false,
   "mpi": {
     "enabled": true,
@@ -19,5 +19,11 @@
     "planner_ranks": 512,
     "planner_ranks_per_node": 32,
     "planner_node_memory_gib": 128
+  },
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar",
+  "plotting": {
+    "enabled": false
   }
 }

@@ -1,5 +1,37 @@
 # AFM Simulation Package — Change Log
 
+## 2026-10-09 — Source release and GitHub branch review
+
+- Prepared the tested local RAM-default package for the maintained
+  `afm-parallelized-mpi` branch without merging a different solver lineage.
+- Added checkout-local validation/provenance and branch-review records, replacing
+  current RAM-guide links that depended on private workspace-only reports.
+- Preserved all numerical/configuration/job bytes from the local promotion,
+  all five original branch histories in a local Git bundle, and the dirty main
+  development checkout. No branch deletion or cross-branch merge accompanies
+  this release; cleanup recommendations require separate confirmation.
+- No new large solve, inter-node test, Fir deployment or quantum-package port.
+
+See [branch review](docs/BRANCH_REVIEW_20261009.md) and
+[RAM validation](docs/RAM_VALIDATION_20261009.md).
+
+## 2026-10-09 — Local lossless RAM-saving default
+
+- Promoted the separately backed-up, validated lossless epsilon-plane and packed-
+  mask storage path. JSON loaders/normalization now default to `ram_compact`,
+  in-place snapshot Jacobi and scalar native RMS/max reductions; all normal
+  shipped configs record these choices with solver plotting disabled.
+- Retained explicit standard/earlier RAM modes and higher-RAM selectors. Named
+  float64 memory-smoke presets are explicit standard-mode diagnostic exceptions.
+- Added bounded material construction/distributed NPY saving, coordinate sidecars,
+  the already-tested local-only Eric visualization tools and 64/512/1024 examples.
+- Preserved float32 fields/materials, physical settings, native convergence,
+  filenames, rank ownership/halos and existing resource/runtime controls.
+- Full pre-promotion standalone backup and installed-validation evidence are
+  linked in [RAM_SAVING.md](RAM_SAVING.md). This local promotion itself included no Git push, Fir
+  action, combined/hybrid synchronization or revival of the cancelled V-cycle
+  upgrade. Large MPI RAM/performance remains unvalidated.
+
 ## 2026-10-07 — Complete standalone source distribution
 
 - Published the restored standalone modules, postprocessing, tests and distinct

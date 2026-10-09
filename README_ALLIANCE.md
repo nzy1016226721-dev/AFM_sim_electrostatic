@@ -9,6 +9,12 @@ submit, cancel, change or monitor Fir jobs.
 
 ## Local Python
 
+The local JSON default is now lossless `ram_compact`/`in_place`/`scalar`, with
+solver-side plotting disabled. See [RAM policy, temporary-disk needs and local
+post-run visualization](RAM_SAVING.md). Existing thread/rank requests and runtime
+limits are preserved; recomputation can make the solve substantially slower.
+This local promotion has not been deployed or numerically validated on Fir.
+
 Use an isolated compatible Python environment with
 [requirements.txt](requirements.txt): NumPy, SciPy, Matplotlib, Numba, psutil.
 MPI additionally needs [requirements-mpi.txt](requirements-mpi.txt) and a
@@ -27,7 +33,8 @@ are not proof of actual core placement.
 ## One-time Alliance setup
 
 Copy the complete tree including `simulation`, `postprocessing`, `jobs` and
-`tests/data`. From its root on the login node:
+`tests/data`; retain `local_post.py`/`local_visualization` on the visualization
+machine and download coordinate sidecars with NPYs. From its root on the login node:
 
 ```bash
 bash jobs/setup_afm_env.sh

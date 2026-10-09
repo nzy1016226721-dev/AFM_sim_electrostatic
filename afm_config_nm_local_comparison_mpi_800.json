@@ -1,9 +1,13 @@
 {
-  "extends": "afm_config_nm_local_comparison_serial_800.json",
   "cpu_threads": 2,
+  "extends": "afm_config_nm_local_comparison_serial_800.json",
   "mpi": {
     "enabled": true,
-    "process_grid": [2, 2, 2],
+    "process_grid": [
+      2,
+      2,
+      2
+    ],
     "initial_grid_level": 64,
     "damping": 1.0,
     "require_convergence": true,
@@ -13,5 +17,11 @@
     "planner_ranks": 8,
     "planner_ranks_per_node": 8,
     "planner_node_memory_gib": 24
+  },
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar",
+  "plotting": {
+    "enabled": false
   }
 }

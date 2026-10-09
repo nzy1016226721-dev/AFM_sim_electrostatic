@@ -92,7 +92,8 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
                        residual_tolerance_mode="absolute",
                        solver_dtype="float32",
                        tip_shape="pyramid",
-                       diagnostic=None):
+                       diagnostic=None, memory_mode="standard",
+                       phi_update_mode=None, residual_accumulation=None):
     """Run a multiresolution AFM electrostatic simulation.
 
     Starts from an 8x8x8 grid for targets at or below 512 cells per axis and
@@ -215,6 +216,17 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
             live_log_path=os.path.join(output_dir, "memory_live_rss.csv"),
             stage=f"initializing main {nx}x{ny}x{nz}",
         ).start()
+    from .ram_first import resolve_memory_mode, resolve_storage_options
+    memory_mode = resolve_memory_mode(memory_mode)
+    resolve_storage_options(memory_mode, phi_update_mode, residual_accumulation)
+    if memory_mode in ("ram_first", "ram_compact") and (field_dtype != np.float32 or plotting_enabled or return_residual):
+        raise ValueError("RAM modes require float32 and headless solving without residual volumes")
+    tip_builder = build_downward_pointing_tip
+    reference_builder = build_eps_reference_memmap
+    if memory_mode == "ram_compact":
+        from .compact_storage import (PackedMask, build_tip_predicate,
+                                      build_reference_planes, generate_eps_compact, PlaneEpsilon)
+        tip_builder, reference_builder = build_tip_predicate, build_reference_planes
     phi = np.full((nx, ny, nz), 0.001, dtype=field_dtype)
     level = 1
 
@@ -227,9 +239,13 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
     if eps_r is None:
         ref_value = eps_reference_resolution
         ref_shape = (int(ref_value),) * 3 if not isinstance(ref_value, (list, tuple)) else tuple(int(v) for v in ref_value)
-        eps_reference_path, eps_reference_mmap = build_eps_reference_memmap(
-            ref_shape, blocks=blocks
+        eps_reference_path, eps_reference_mmap = reference_builder(
+            ref_shape, blocks=blocks,
+            **({"directory":output_dir} if memory_mode == "ram_compact" else {})
         )
+        if memory_mode == "ram_first":
+            eps_reference_mmap._mmap.close()
+            eps_reference_mmap = np.load(eps_reference_path, mmap_mode="r", allow_pickle=False)
 
     try:
         while True:
@@ -242,7 +258,7 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
             if physical:
                 domain_nm = physical["domain_nm"]
                 origin = physical["origin_fraction"]
-                tip_mask, tip_pos, base_pos = build_downward_pointing_tip(
+                tip_mask, tip_pos, base_pos = tip_builder(
                     nx, ny, nz, tip_z, R, r_tip, aspect_ratio, verbose=False,
                     tip_z_nm=physical.get("tip_z_nm"),
                     R_nm=physical.get("R_nm"),
@@ -252,12 +268,12 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
                     tip_shape=tip_shape,
                 )
             else:
-                tip_mask, tip_pos, base_pos = build_downward_pointing_tip(
+                tip_mask, tip_pos, base_pos = tip_builder(
                     nx, ny, nz, tip_z, R, r_tip, aspect_ratio, verbose=False,
                     tip_shape=tip_shape,
                 )
 
-            boundary_mask = np.zeros((nx, ny, nz), dtype=bool)
+            boundary_mask = PackedMask((nx,ny,nz)) if memory_mode == "ram_compact" else np.zeros((nx, ny, nz), dtype=bool)
 
             if solver_vgate is not None and isinstance(solver_vgate, (list, tuple)) and len(solver_vgate) > 0:
                 for g in solver_vgate:
@@ -267,26 +283,42 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
                     # boolean mask per gate would cost 1 GiB each at 1024^3
                     # despite those masks never being used after this point.
                     phi[gate_region] = val_g
-                    boundary_mask[gate_region] = True
+                    if memory_mode == "ram_compact":
+                        boundary_mask.mark_box(gate_region)
+                    else:
+                        boundary_mask[gate_region] = True
             else:
                 if isinstance(solver_vgate, dict):
                     gate_region = gate_slices(nx, ny, nz, solver_vgate)
                     val_g  = float(solver_vgate.get("Vgate_val", 0.0))
                     phi[gate_region] = val_g
-                    boundary_mask[gate_region] = True
+                    if memory_mode == "ram_compact":
+                        boundary_mask.mark_box(gate_region)
+                    else:
+                        boundary_mask[gate_region] = True
 
-            phi[tip_mask] = solver_vtip
-            boundary_mask[tip_mask] = True
+            if memory_mode == "ram_compact":
+                tip_mask.apply(phi,boundary_mask,solver_vtip)
+            else:
+                phi[tip_mask] = solver_vtip
+                boundary_mask[tip_mask] = True
 
             if eps_r is None:
                 eps_reference = eps_reference_resolution
                 eps_reference_shape = (int(eps_reference), int(eps_reference), int(eps_reference)) if not isinstance(eps_reference, (list, tuple)) else tuple(int(v) for v in eps_reference)
-                eps_cell = generate_eps_level(
+                level_generator = generate_eps_level
+                if memory_mode == "ram_first":
+                    from .materials_bounded import generate_eps_level_bounded
+                    level_generator = generate_eps_level_bounded
+                elif memory_mode == "ram_compact":
+                    level_generator = generate_eps_compact
+                eps_cell = level_generator(
                     phi.shape, blocks, reference_shape=eps_reference_shape,
-                    reference=eps_reference_mmap
+                    reference=eps_reference_mmap,
+                    **({"directory":output_dir} if memory_mode == "ram_compact" else {})
                 )
             else:
-                eps_cell = np.asarray(eps_r, dtype=field_dtype)
+                eps_cell = (eps_r if isinstance(eps_r,PlaneEpsilon) else PlaneEpsilon.from_dense(np.asarray(eps_r,dtype=field_dtype),directory=output_dir)) if memory_mode == "ram_compact" else np.asarray(eps_r, dtype=field_dtype)
             if eps_cell.dtype != field_dtype:
                 eps_cell = np.asarray(eps_cell, dtype=field_dtype)
 
@@ -315,7 +347,10 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
                                             plotting_enabled=plotting_enabled,
                                             cpu_threads=cpu_threads,
                                             return_residual=return_residual,
-                                            diagnostic_iterations=diagnostic_iterations)
+                                            diagnostic_iterations=diagnostic_iterations,
+                                            memory_mode=memory_mode,
+                                            phi_update_mode=phi_update_mode,
+                                            residual_accumulation=residual_accumulation)
 
             if memory_tracking:
                 log_memory_usage(f"main {nx}x{ny}x{nz}", mem_tracker.peak_gb, output_dir=output_dir)
@@ -373,6 +408,8 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
                 if verbose:
                     print(f"[Level {level}] Target grid size reached ({nx}x{ny}x{nz}). Simulation complete.")
                 # Keep only the final potential and residual for the returned result.
+                if memory_mode == "ram_compact" and eps_cell is not eps_r:
+                    eps_cell.close()
                 del eps_cell
                 if "tip_mask" in locals():
                     # tip_mask is returned, so do not delete it.
@@ -394,6 +431,12 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
                 live_memory_tracker.set_stage(
                     f"upscaling main {old_nx}x{old_ny}x{old_nz} to {nx}x{ny}x{nz}"
                 )
+            if memory_mode in ("ram_first", "ram_compact"):
+                # These are not used by interpolation; free them BEFORE the
+                # larger potential is allocated, not after the peak.
+                if memory_mode == "ram_compact" and eps_cell is not eps_r:
+                    eps_cell.close()
+                del eps_cell, boundary_mask, tip_mask
             phi = zoom(phi_solution, scale, order=1)
             # scipy's zoom can round by one node for non-integer scale factors.
             # Enforce the exact target shape so rectangular targets such as
@@ -407,8 +450,9 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
             # Only the interpolated potential is retained for the next solve.
             del phi_solution
             del res_m
-            del eps_cell
-            del boundary_mask
+            if memory_mode not in ("ram_first", "ram_compact"):
+                del eps_cell
+                del boundary_mask
             if "tip_mask" in locals():
                 del tip_mask
             gc.collect()
@@ -418,6 +462,8 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
 
             level += 1
     finally:
+        if memory_mode == "ram_compact" and "eps_cell" in locals() and isinstance(eps_cell,PlaneEpsilon) and eps_cell is not eps_r:
+            eps_cell.close()
         if live_memory_tracker is not None:
             live_memory_tracker.set_stage("finalizing")
             live_memory_tracker.stop()
@@ -1136,6 +1182,8 @@ def batch_main(config_path=None, config_dir=".", plotting_override=None,
         print(f"{'='*60}")
 
         _, cfg = load_afm_config(config_path)
+        if cfg.get("memory_mode") in ("ram_first", "ram_compact") and cfg.get("zoom_simulation",{}).get("enabled",False):
+            raise ValueError("RAM-saving modes support the main grid only; legacy zoom requires standard mode")
 
         plotting_enabled = resolve_plotting_enabled(
             cfg, cli_override=plotting_override
@@ -1266,6 +1314,9 @@ def batch_main(config_path=None, config_dir=".", plotting_override=None,
                     solver_dtype=cfg.get("solver_dtype", "float32"),
                     tip_shape=cfg.get("tip_shape", "pyramid"),
                     diagnostic=cfg.get("diagnostic"),
+                    memory_mode=cfg.get("memory_mode", "standard"),
+                    phi_update_mode=cfg.get("phi_update_mode"),
+                    residual_accumulation=cfg.get("residual_accumulation"),
                 )
 
                 phi = results["phi"]

@@ -1,7 +1,13 @@
 {
+  "cpu_threads": 192,
   "extends": "afm_config_nm_parity_4096_tol1e6_base.json",
   "v_start": -1,
   "v_stop": -1,
-  "cpu_threads": 192,
-  "memory_tracking": true
+  "memory_tracking": true,
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar",
+  "plotting": {
+    "enabled": false
+  }
 }

@@ -1,6 +1,6 @@
 {
-  "extends": "../../afm_config_nm_serial_control_2048.json",
   "cpu_threads": 1,
+  "extends": "../../afm_config_nm_serial_control_2048.json",
   "grid_resolution": {
     "nx": 128,
     "ny": 128,
@@ -18,7 +18,11 @@
   "save_cut": false,
   "mpi": {
     "enabled": true,
-    "process_grid": [2, 2, 2],
+    "process_grid": [
+      2,
+      2,
+      2
+    ],
     "initial_grid_level": 8,
     "damping": 1.0,
     "max_iter": 60000,
@@ -29,5 +33,8 @@
     "planner_ranks": 8,
     "planner_ranks_per_node": 8,
     "planner_node_memory_gib": 16
-  }
+  },
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar"
 }

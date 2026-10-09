@@ -3,8 +3,10 @@
 Start with the [package guide](README.md) and
 [configuration contract](DOCUMENTATION.md). This guide retains dated
 benchmark/deployment history; job-state, upload and resource statements in
-those sections are not live status. The October 7, 2026 publication completes
-the source distribution without changing numerical code or configurations.
+those sections are not live status. The October 9 local package now uses the
+[lossless RAM default](RAM_SAVING.md). The October 7 publication and older
+benchmarks describe the pre-promotion implementation; the October 9 release
+and its validation are distinguished in the [RAM evidence summary](docs/RAM_VALIDATION_20261009.md).
 
 `run_mpi.py` splits **one global electrostatic grid** over a three-dimensional
 Cartesian MPI communicator. It is not a voltage-sweep task farm: every MPI
@@ -19,20 +21,26 @@ serial/shared-memory path.
 
 ## What is distributed
 
-- Potential, fixed-node mask, dielectric face coefficients, Jacobi workspace,
-  and refinement fields are local blocks with halos; no rank creates a
-  16384³ NumPy array.
-- To reproduce the established serial material discretization, rank zero alone
-  stages a bounded global epsilon field only for solver-cell shapes at or below
-  `epsilon_material.reference_resolution` (512³ by default) and streams each
-  rank's halo. Finer levels rasterize locally, so this compatibility step does
-  not grow into a global 4096³--16384³ allocation.
+- Potential, masks, epsilon and refinement fields are rank-local with halos;
+  no rank creates a full 16384³ volume. The RAM default retains one phi plus
+  bounded old-plane snapshots, packed/predicate masks and a lossless float32
+  epsilon-plane bank, reconstructing faces on demand. `standard` retains the
+  original face/buffer representation.
+- Both paths reproduce the existing `epsilon_material.reference_resolution`
+  policy (512-cell reference by default). RAM modes construct rank-local
+  material planes with bounded exact reference-cell averaging below that
+  resolution, then direct local rasterization for finer levels. `standard`
+  retains its bounded rank-zero compatibility staging. Neither changes
+  dielectric precision or the discretized physical problem.
 - Residual sum/count/max values are reduced globally with MPI.
 - Coarse-to-fine trilinear prolongation reads the local coarse block plus
   exchanged halos; it does not gather or write a temporary global field.
-- `save_full=true` uses MPI-IO to write one valid C-order float32 `.npy`.
-- Physical cuts are gathered only after their global size is checked against
-  `mpi.max_cut_gather_gib`; the 16384 template saves a small cut and disables
+- `save_full=true` writes one valid C-order float32 `.npy`; RAM modes stream
+  bounded rank slabs rather than packing another complete local block.
+- RAM-mode physical cuts use bounded collective MPI-IO slabs, with no root
+  volume gather. `standard` retains its root gather and the associated
+  `mpi.max_cut_gather_gib` size check. Coordinate sidecars describe actual
+  retained nodes. The 16384 template saves a small cut and disables
   the roughly 16 TiB full-field output.
 
 The distributed path currently supports the main grid only. It rejects
@@ -52,6 +60,13 @@ An explicit serial `initial_grid_level` or `mpi.initial_grid_level` remains an
 intentional diagnostic override. The older fixed512 policy is superseded.
 
 ## Numerical consistency gate
+
+The promoted storage implementation passed shared 512/1024 original-byte and
+complete-native-history replay and real two-rank small-grid parity. The installed
+version is rechecked in the [installed-validation summary](docs/RAM_VALIDATION_20261009.md).
+Large-grid MPI memory/performance and inter-node Fir results remain unvalidated;
+small MPI private memory can increase from setup/JIT overhead. Preserve existing
+resource/preflight controls and review runtime budgets for the slower RAM path.
 
 Convergence of two independent jobs is necessary but is not, by itself,
 evidence that their discretizations match. Auditing the distributed stencil

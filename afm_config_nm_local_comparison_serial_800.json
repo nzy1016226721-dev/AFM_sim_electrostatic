@@ -1,6 +1,6 @@
 {
-  "extends": "afm_config_nm_serial_control_2048.json",
   "cpu_threads": 16,
+  "extends": "afm_config_nm_serial_control_2048.json",
   "grid_resolution": {
     "nx": 800,
     "ny": 800,
@@ -11,8 +11,16 @@
   "v_stop": -1.0,
   "v_step": 0.5,
   "movement": {
-    "start_nm": [0.0, 0.0, 20.0],
-    "end_nm": [0.0, 0.0, 20.0],
+    "start_nm": [
+      0.0,
+      0.0,
+      20.0
+    ],
+    "end_nm": [
+      0.0,
+      0.0,
+      20.0
+    ],
     "spacing_nm": 7.071,
     "cascade": true
   },
@@ -27,5 +35,8 @@
   "memory_tracking": true,
   "memory_live_interval_seconds": 10.0,
   "save_full": true,
-  "save_cut": true
+  "save_cut": true,
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar"
 }

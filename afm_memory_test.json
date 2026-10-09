@@ -135,6 +135,9 @@
       ]
     }
   ],
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar",
   "blocks_nm": [
     {
       "eps_val": 1.0

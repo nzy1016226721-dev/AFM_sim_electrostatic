@@ -7,6 +7,7 @@ fractional coordinates [0, 1].
 """
 from copy import deepcopy
 
+from .config_defaults import apply_solver_defaults
 from .numerics import resolve_tip_shape
 
 
@@ -147,7 +148,7 @@ def normalize_config(cfg):
     from nanometres. Existing fractional fields are accepted for compatibility,
     but new configurations should use only the ``*_nm`` form.
     """
-    out = deepcopy(cfg)
+    out = apply_solver_defaults(cfg)
 
     # Canonical physical scale: one voxel edge length plus main-grid resolution.
     # The old Lx_nm/Ly_nm/Lz_nm entries are derived internally for legacy

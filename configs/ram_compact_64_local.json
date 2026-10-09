@@ -1,0 +1,11 @@
+{
+  "cpu_threads": 8,
+  "extends": "ram_compact_512_local.json",
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar",
+  "grid_resolution": {"nx": 64, "ny": 64, "nz": 64},
+  "voxel_nm3": 4.0,
+  "mg_max_runtime": 600,
+  "plotting": {"enabled": false}
+}

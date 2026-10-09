@@ -1,15 +1,29 @@
 {
+  "cpu_threads": 96,
   "extends": "afm_config_nm_serial_mpi_comparison_2048_base.json",
   "grid_resolution": {
     "nx": 4096,
     "ny": 4096,
     "nz": 4096
   },
-  "res_tol_main": 1e-5,
-  "res_tol_zoom": 1e-5,
+  "res_tol_main": 1E-05,
+  "res_tol_zoom": 1E-05,
   "mg_max_runtime": 10500.0,
   "save_full": false,
   "save_cut": true,
   "save_cut_reference": "movement_center",
-  "save_cut_box_nm": [-50.0, 50.0, -50.0, 50.0, -20.0, 80.0]
+  "save_cut_box_nm": [
+    -50.0,
+    50.0,
+    -50.0,
+    50.0,
+    -20.0,
+    80.0
+  ],
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar",
+  "plotting": {
+    "enabled": false
+  }
 }

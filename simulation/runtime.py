@@ -7,6 +7,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from .config_defaults import DEFAULT_MEMORY_MODE, RAM_MODES
 
 def is_batch_execution() -> bool:
     """Return True when execution is explicitly batch/Slurm/headless."""
@@ -86,10 +87,19 @@ def resolve_config_path(config_path: str | os.PathLike | None = None,
 
 
 def resolve_plotting_enabled(cfg: dict, *, cli_override: bool | None = None) -> bool:
-    """Resolve whether interactive plotting should be performed."""
+    """Resolve plots; RAM modes use post-run local visualization instead."""
     plotting_cfg = cfg.get("plotting", {})
     if not isinstance(plotting_cfg, dict):
         plotting_cfg = {}
+
+    mode = str(cfg.get("memory_mode") or DEFAULT_MEMORY_MODE).lower()
+    if mode in RAM_MODES:
+        if cli_override is not False and (cli_override or plotting_cfg.get("enabled", False)):
+            raise ValueError(
+                "RAM-saving modes require plotting.enabled=false; use local_post.py "
+                "after the run, or explicitly select memory_mode=standard for solver plots"
+            )
+        return False
 
     enabled = bool(plotting_cfg.get("enabled", True))
     if not enabled:

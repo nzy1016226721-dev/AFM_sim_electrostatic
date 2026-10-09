@@ -425,9 +425,27 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
                  max_iter=None, tol=1e-6, verbose=True, eps_r=None, eps=True,
                  mg_max_runtime=None, output_dir=".", plotting_enabled=True,
                  cpu_threads=1, return_residual=True,
-                 diagnostic_iterations=None):
+                 diagnostic_iterations=None, memory_mode="standard",
+                 phi_update_mode=None, residual_accumulation=None):
     """Multigrid solver for the 3D Poisson equation with dielectric variation."""
     nx, ny, nz = phi.shape
+    from .ram_first import resolve_memory_mode, resolve_storage_options, solve_ram_first
+    resolve_storage_options(memory_mode, phi_update_mode, residual_accumulation)
+    memory_mode = resolve_memory_mode(memory_mode)
+    if memory_mode in ("ram_first", "ram_compact"):
+        if return_residual or plotting_enabled or not eps:
+            raise ValueError("RAM modes require eps=True, return_residual=False and plotting disabled; use local_post.py after download")
+        selected_solver = solve_ram_first
+        if memory_mode == "ram_compact":
+            from .compact_solver import solve_compact
+            selected_solver = solve_compact
+        return selected_solver(
+            phi, eps_r, boundary_mask, damping=damping, tol=tol,
+            cpu_threads=cpu_threads, max_runtime=mg_max_runtime,
+            output_dir=output_dir, verbose=verbose,
+            diagnostic_iterations=diagnostic_iterations,
+            phi_update_mode=phi_update_mode, residual_accumulation=residual_accumulation,
+        )
 
     def neumann(a):
         """Apply homogeneous Neumann BC by copying the nearest interior plane."""

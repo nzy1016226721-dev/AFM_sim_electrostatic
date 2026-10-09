@@ -1,6 +1,6 @@
 {
-  "extends": "afm_config_nm_production_4096.json",
   "cpu_threads": 12,
+  "extends": "afm_config_nm_production_4096.json",
   "grid_resolution": {
     "nx": 16384,
     "ny": 16384,
@@ -11,8 +11,16 @@
   "v_step": 0.5,
   "mg_max_runtime": null,
   "movement": {
-    "start_nm": [0.0, 0.0, 20.0],
-    "end_nm": [0.0, 0.0, 20.0],
+    "start_nm": [
+      0.0,
+      0.0,
+      20.0
+    ],
+    "end_nm": [
+      0.0,
+      0.0,
+      20.0
+    ],
     "spacing_nm": 7.071,
     "cascade": true
   },
@@ -26,10 +34,21 @@
   "save_full": false,
   "save_cut": true,
   "save_cut_reference": "movement_center",
-  "save_cut_box_nm": [-50.0, 50.0, -50.0, 50.0, -20.0, 80.0],
+  "save_cut_box_nm": [
+    -50.0,
+    50.0,
+    -50.0,
+    50.0,
+    -20.0,
+    80.0
+  ],
   "mpi": {
     "enabled": true,
-    "process_grid": [16, 16, 16],
+    "process_grid": [
+      16,
+      16,
+      16
+    ],
     "damping": 1.0,
     "require_convergence": true,
     "residual_check_interval": 10,
@@ -38,5 +57,8 @@
     "planner_ranks": 4096,
     "planner_ranks_per_node": 16,
     "planner_node_memory_gib": 768
-  }
+  },
+  "memory_mode": "ram_compact",
+  "phi_update_mode": "in_place",
+  "residual_accumulation": "scalar"
 }

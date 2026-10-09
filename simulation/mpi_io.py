@@ -21,7 +21,7 @@ def _require_mpi():
     return MPI
 
 
-def numpy_header_bytes(shape: Sequence[int], dtype=np.float32) -> bytes:
+def numpy_header_bytes(shape: Sequence[int], dtype=np.float32, *, version=2) -> bytes:
     """Return a complete NumPy v2.0 header without allocating the array."""
     header = {
         "descr": np.lib.format.dtype_to_descr(np.dtype(dtype)),
@@ -29,8 +29,67 @@ def numpy_header_bytes(shape: Sequence[int], dtype=np.float32) -> bytes:
         "shape": tuple(int(v) for v in shape),
     }
     buffer = io.BytesIO()
-    np.lib.format.write_array_header_2_0(buffer, header)
+    writer = np.lib.format.write_array_header_1_0 if version == 1 else np.lib.format.write_array_header_2_0
+    writer(buffer, header)
     return buffer.getvalue()
+
+
+def _save_streamed_subarray(field, filename, output_dir, global_slices, *, header_version=2,
+                           buffer_bytes=8*1024**2):
+    """Bounded MPI-IO: no full owned copy and no root gather of cut pieces.
+
+    All ranks perform the same number of collectives; nonintersecting/finished
+    ranks contribute zero elements. A file subarray view preserves xyz C-order.
+    """
+    MPI = _require_mpi()
+    decomp = field.decomposition
+    comm = decomp.cart
+    cut_shape = tuple(s.stop-s.start for s in global_slices)
+    if decomp.rank == 0:
+        path = _unique_output_path(output_dir,filename)
+    else:
+        path = None
+    path = comm.bcast(path,root=0)
+    header = numpy_header_bytes(cut_shape,version=header_version)
+    local_selection, destination, counts = [],[],[]
+    for selection,start,count in zip(global_slices,decomp.starts,decomp.counts):
+        lo,hi = max(selection.start,start),min(selection.stop,start+count)
+        counts.append(max(0,hi-lo))
+        local_selection.append(slice(lo-start+1,hi-start+1))
+        destination.append(lo-selection.start)
+    intersects = all(counts)
+    view = field.data[tuple(local_selection)] if intersects else None
+    rows = counts[0]*counts[1] if intersects else 0
+    rows_per_chunk = max(1,int(buffer_bytes)//(max(1,counts[2])*4))
+    calls = int(comm.allreduce((rows+rows_per_chunk-1)//rows_per_chunk,op=MPI.MAX))
+    handle = MPI.File.Open(comm,path,MPI.MODE_WRONLY|MPI.MODE_CREATE)
+    filetype = None
+    try:
+        handle.Set_size(len(header)+math_prod(cut_shape)*4)
+        if decomp.rank == 0:
+            handle.Write_at(0,np.frombuffer(header,dtype=np.uint8))
+        comm.Barrier()
+        if intersects:
+            filetype = MPI.FLOAT.Create_subarray(cut_shape,counts,destination,order=MPI.ORDER_C)
+            filetype.Commit()
+        handle.Set_view(len(header),etype=MPI.FLOAT,filetype=filetype if intersects else MPI.FLOAT,datarep="native")
+        for step in range(calls):
+            first = step*rows_per_chunk
+            stop = min(rows,first+rows_per_chunk)
+            if first >= rows:
+                buffer = np.empty(0,np.float32)
+            else:
+                buffer = np.empty((stop-first,counts[2]),np.float32)
+                for row in range(first,stop):
+                    i,j = divmod(row,counts[1])
+                    buffer[row-first] = view[i,j,:]
+            handle.Write_all(buffer)
+            del buffer
+    finally:
+        if filetype is not None:
+            filetype.Free()
+        handle.Close()
+    return str(path)
 
 
 def save_distributed_npy(
@@ -38,6 +97,7 @@ def save_distributed_npy(
     filename: str,
     *,
     output_dir: str,
+    memory_mode="standard",
 ) -> str:
     """Collectively write a C-order float32 ``.npy`` through MPI-IO."""
     MPI = _require_mpi()
@@ -45,6 +105,9 @@ def save_distributed_npy(
     comm = decomp.cart
     if field.data.dtype != np.float32:
         raise TypeError("distributed NPY output currently requires float32 fields")
+    if memory_mode in ("ram_first", "ram_compact"):
+        return _save_streamed_subarray(field,filename,output_dir,
+                                      tuple(slice(0,n) for n in decomp.global_shape))
 
     if decomp.rank == 0:
         path = _unique_output_path(output_dir, filename)
@@ -161,6 +224,7 @@ def save_distributed_physical_cut(
     filename: str,
     output_dir: str,
     max_root_bytes: int = 8 * 1024**3,
+    memory_mode="standard",
 ) -> tuple[str | None, tuple[float, ...] | None]:
     """Gather a bounded physical cut to rank zero and save it as ``.npy``."""
     decomp = field.decomposition
@@ -175,7 +239,7 @@ def save_distributed_physical_cut(
             cut_shape = tuple(s.stop - s.start for s in global_slices)
             cut_bytes = math_prod(cut_shape) * np.dtype(np.float32).itemsize
             error = None
-            if cut_bytes > int(max_root_bytes):
+            if memory_mode not in ("ram_first", "ram_compact") and cut_bytes > int(max_root_bytes):
                 error = (
                     f"MPI cut would gather {human_bytes(cut_bytes)} on rank zero, above "
                     f"mpi.max_cut_gather_gib={max_root_bytes / 1024**3:.2f} GiB. "
@@ -192,6 +256,12 @@ def save_distributed_physical_cut(
             print("Physical cut does not intersect the distributed field; skipping cut.")
         return None, None
 
+    if memory_mode in ("ram_first", "ram_compact"):
+        path = _save_streamed_subarray(field,filename,output_dir,global_slices,header_version=1)
+        if decomp.rank == 0:
+            from .output_coordinates import write_coordinate_receipt
+            write_coordinate_receipt(path,decomp.global_shape,field_bounds_nm,global_slices)
+        return path,actual
     local = _local_cut(field, global_slices)
     pieces = comm.gather(local, root=0)
     if decomp.rank == 0:
@@ -208,6 +278,8 @@ def save_distributed_physical_cut(
             cut[destination] = chunk
         path = _unique_output_path(output_dir, filename)
         np.save(path, cut)
+        from .output_coordinates import write_coordinate_receipt
+        write_coordinate_receipt(path, decomp.global_shape, field_bounds_nm, global_slices)
         print(f"Saved distributed physical cut to {path}: shape={cut.shape}, bounds_nm={actual}")
         del cut
     else:
