@@ -1032,6 +1032,8 @@ def solve_distributed_level(
     epsilon_cells=None,
     phi_update_mode=None,
     residual_accumulation=None,
+    stopping=None,
+    stopping_context=None,
 ) -> tuple[DistributedField, dict]:
     """Solve one distributed refinement level with global convergence tests.
 
@@ -1042,6 +1044,11 @@ def solve_distributed_level(
     """
     decomp = field.decomposition
     rank = decomp.rank
+    from .stopping import StoppingController
+    stop = (StoppingController(stopping,tol,decomp.global_shape,stopping_context,output_dir,rank==0)
+            if stopping is not None else None)
+    if stop is not None and field.data.dtype != np.float32:
+        raise ValueError("New stopping policies require float32 fields")
     actual_threads = configure_cpu_threads(cpu_threads)
     current = field.data
     target = None
@@ -1104,6 +1111,7 @@ def solve_distributed_level(
     iteration = 0
     while True:
         iteration += 1
+        update_began = time.monotonic() if stop is not None else 0.
         if epsilon_cells is not None:
             destination = current
             if update_mode == "buffered":
@@ -1139,22 +1147,46 @@ def solve_distributed_level(
             decomp.owned(target)[mask] = fixed_values
         if epsilon_cells is None or update_mode == "buffered":
             current, target = target, current
+        if stop is not None:
+            stop.timings["update_restore_seconds"] += time.monotonic()-update_began
+        halo_began = time.monotonic() if stop is not None else 0.
         decomp.exchange_halos(current)
+        if stop is not None:
+            stop.timings["halo_seconds"] += time.monotonic()-halo_began
         completed = iteration
         elapsed = time.monotonic() - started
 
+        policy_timeout = False
+        if stop is not None and max_runtime is not None:
+            # A time-limited new policy must make the same collective decision
+            # on every rank, even when imports/JIT/timers differ.
+            policy_timeout = decomp.cart.bcast(elapsed>float(max_runtime) if rank==0 else None,root=0)
         check = iteration <= 5 or iteration % int(residual_check_interval) == 0
+        if stop is not None:
+            check = (stop.needs_check(iteration,check) or stop.limited(iteration) or
+                     policy_timeout)
         if check:
+            residual_began = time.monotonic() if stop is not None else 0.
             residual, residual_max, free_count = distributed_residual(
                 DistributedField(decomp, current), mask, faces, epsilon_cells, accumulation, residual_volume
             )
+            if stop is not None:
+                stop.timings["global_residual_seconds"] += time.monotonic()-residual_began
             if rank == 0:
                 _append_root_csv(
                     os.path.join(output_dir, "residual_history_mpi.csv"),
                     ("iteration", "residual_avg", "residual_max", "free_nodes"),
                     (iteration, f"{residual:.12e}", f"{residual_max:.12e}", free_count),
                 )
-            if diagnostic_iterations is None and residual < float(tol):
+            if stop is not None and diagnostic_iterations is None:
+                from .stopping_stats import extra_statistics
+                extra = extra_statistics(current,kernel_epsilon,kernel_mask,decomp.starts,decomp.global_shape,
+                                         stop,faces=faces,comm=decomp.cart)
+                policy_reason = stop.observe(iteration,residual,residual_max,free_count,extra)
+                if policy_reason != "running":
+                    reason = policy_reason
+                    break
+            elif diagnostic_iterations is None and residual < float(tol):
                 reason = "converged"
                 break
         if diagnostic_iterations is not None and iteration >= diagnostic_iterations:
@@ -1175,7 +1207,7 @@ def solve_distributed_level(
                     )
             reason = "diagnostic_iteration_limit"
             break
-        if max_runtime is not None and elapsed > float(max_runtime):
+        if policy_timeout or (stop is None and max_runtime is not None and elapsed > float(max_runtime)):
             if not check:
                 residual, residual_max, _ = distributed_residual(
                     DistributedField(decomp, current), mask, faces, epsilon_cells, accumulation, residual_volume
@@ -1211,6 +1243,7 @@ def solve_distributed_level(
         "residual": residual,
         "residual_max": residual_max,
         "reason": reason,
+        **({"stopping":stop.summary()} if stop is not None else {}),
         "memory_mode": "ram_compact" if compact else ("ram_first" if epsilon_cells is not None else "standard"),
         "epsilon_storage_bytes": epsilon_cells.nbytes if compact else None,
         "mask_storage_bytes": mask.nbytes if compact else None,

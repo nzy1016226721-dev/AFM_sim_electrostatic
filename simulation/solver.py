@@ -426,9 +426,15 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
                  mg_max_runtime=None, output_dir=".", plotting_enabled=True,
                  cpu_threads=1, return_residual=True,
                  diagnostic_iterations=None, memory_mode="standard",
-                 phi_update_mode=None, residual_accumulation=None):
+                 phi_update_mode=None, residual_accumulation=None,
+                 stopping=None, stopping_context=None):
     """Multigrid solver for the 3D Poisson equation with dielectric variation."""
     nx, ny, nz = phi.shape
+    from .stopping import resolve_stopping, StoppingController
+    stopping = resolve_stopping(stopping, tol)
+    MG_TIME.pop("stopping", None)
+    if stopping is not None and phi.dtype != np.float32:
+        raise ValueError("New stopping policies require float32 fields")
     from .ram_first import resolve_memory_mode, resolve_storage_options, solve_ram_first
     resolve_storage_options(memory_mode, phi_update_mode, residual_accumulation)
     memory_mode = resolve_memory_mode(memory_mode)
@@ -445,6 +451,7 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
             output_dir=output_dir, verbose=verbose,
             diagnostic_iterations=diagnostic_iterations,
             phi_update_mode=phi_update_mode, residual_accumulation=residual_accumulation,
+            stopping=stopping, stopping_context=stopping_context,
         )
 
     def neumann(a):
@@ -464,6 +471,8 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
                                               diagnostic_iteration_limit=None):
         """Optimised SOR solver for div(eps * grad(phi)) = 0."""
         Nx, Ny, Nz = V.shape
+        stop = (StoppingController(stopping, tol, V.shape, stopping_context, output_dir)
+                if stopping is not None else None)
         if eps_cell.shape != (Nx-1, Ny-1, Nz-1):
             raise ValueError("eps_cell must have shape (Nx-1,Ny-1,Nz-1).")
 
@@ -564,6 +573,7 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
         it = 0
         while True:
             it += 1
+            update_began = time.monotonic() if stop is not None else 0.
             if cpu_threads == 1:
                 # Original operation order retained intentionally for reference
                 # and compatibility testing.
@@ -616,9 +626,15 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
                 V[mask] = fixed_values
 
             elapsed = time.time() - level_start_time
+            if stop is not None:
+                stop.timings["update_restore_seconds"] += time.monotonic()-update_began
             MG_TIME["elapsed"] = elapsed
 
-            if it % 10 == 0 or it <= 5:
+            check = it % 10 == 0 or it <= 5
+            if stop is not None:
+                check = stop.needs_check(it, check) or stop.limited(it)
+            if check:
+                residual_began = time.monotonic() if stop is not None else 0.
                 if cpu_threads == 1:
                     res, res_max = compute_residual_scalars(
                         V, mask, axp, axm, ayp, aym, azp, azm, a0
@@ -636,6 +652,8 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
                         res, res_max = residual_scalars_faces_parallel(
                             V, mask, axp, axm, ayp, aym, azp, azm
                         )
+                if stop is not None:
+                    stop.timings["global_residual_seconds"] += time.monotonic()-residual_began
                 if verbose:
                     print(f"iter {it:6d}: res_avg={res:.5e}, res_max={res_max:.5e}")
                 log_residual_csv(it, res, res_max, output_dir=output_dir)
@@ -646,8 +664,20 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
                     residual_max=float(res_max),
                     reason="running",
                 )
+                policy_reason = "running"
+                if stop is not None and diagnostic_iteration_limit is None:
+                    from .stopping_stats import extra_statistics
+                    extra = extra_statistics(V, None, mask[1:-1,1:-1,1:-1], (1,1,1), V.shape, stop,
+                                             faces=(axp,axm,ayp,aym,azp,azm))
+                    count = (Nx-2)*(Ny-2)*(Nz-2) - int(np.count_nonzero(mask[1:-1,1:-1,1:-1]))
+                    policy_reason = stop.observe(it,res,res_max,count,extra)
+                    MG_TIME["stopping"] = stop.summary()
+                    if policy_reason not in ("running", "converged"):
+                        MG_TIME["reason"] = policy_reason
+                        return V, None
 
-                if diagnostic_iteration_limit is None and res < tol:
+                if diagnostic_iteration_limit is None and ((stop is None and res < tol) or
+                                                           policy_reason == "converged"):
                     print(f"Converged in {it} iterations in {elapsed:.2f} s; residual={res:.5e}")
                     MG_TIME["reason"] = "converged"
                     plot_convergence(output_dir=output_dir, show=plotting_enabled)

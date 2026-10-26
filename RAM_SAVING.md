@@ -4,6 +4,13 @@ As of October 9, 2026, both JSON launchers default to the tested lossless RAM
 path. This is a storage upgrade, not the cancelled V-cycle/certified-refinement
 upgrade. Combined/hybrid AFM copies and quantum packages remain independent.
 
+October 26 consolidation: this remains the storage default. Later distributed
+campaigns and their qualified RAM/time observations are summarized in
+[current validation](docs/VALIDATION_20261026.md). Read
+[current source relationships](docs/CURRENT_STATE.md) before comparing bundles,
+hybrid releases or frozen experiments. New stopping modes are opt-in and can
+reduce regional statistics without retaining a full residual array.
+
 ## Configuration
 
 Normal shipped JSONs explicitly record:
@@ -77,7 +84,8 @@ The large examples retain a 7200-second runtime control; they do not reproduce
 the old until-finish-or-crash experiment. For MPI use matching software and an
 appropriate process grid/thread count. Plan first: the conservative all-unique
 epsilon estimate is not a measured peak or guaranteed admission. Large MPI/Fir
-validation has not been performed for this upgrade.
+validation had not been performed at the October 9 checkpoint; later dated
+evidence is distinguished in the current validation summary linked above.
 
 Solver-side plotting stays off in RAM modes, including in an IDE. After MPI
 has finished and output plus `.coords.json` sidecars are downloaded, use Eric's

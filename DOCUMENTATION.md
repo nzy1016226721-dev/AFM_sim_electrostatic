@@ -5,6 +5,11 @@ implemented storage behaviour, not the abandoned October 4–6 certified-refinem
 upgrade. See [RAM policy](RAM_SAVING.md), [MPI instructions](README_MPI.md) and the
 [configuration/job catalogue](docs/CONFIGS_AND_JOBS.md).
 
+The October 26 source snapshot also documents existing opt-in
+[stopping controls](docs/STOPPING_MODES.md), [current source relationships](docs/CURRENT_STATE.md)
+and [validation limits](docs/VALIDATION_20261026.md). These supplement the dated
+storage release without changing existing presets or convergence defaults.
+
 ## Launch and inheritance
 
 `python run_all.py CONFIG.json --no-plot --output-dir OUTPUT` runs one explicit
@@ -29,6 +34,7 @@ solver-side plotting. See [alternatives and diagnostic exceptions](RAM_SAVING.md
 | `grid_resolution.nx/ny/nz` | Main-grid sample counts, each at least 2 |
 | `voxel_nm3` | Legacy name for the main-grid edge length in **nm**, not a volume |
 | Domain extent | Axis length is `N * voxel_nm3`; endpoint-node pitch is that length divided by `N - 1` |
+| `coordinate_system.extent_convention` | `voxel_count` retains that default; explicit `node_intervals` uses `(N-1) * voxel_nm3` for controlled endpoint-node studies |
 | `coordinate_system.origin_fraction` | Origin for `*_nm` coordinates; default `[0.5, 0.5, 0.0]` |
 | `blocks_nm` / `Vgate_nm` | Dielectric blocks / fixed-voltage gates in origin-relative nanometres |
 | `tip_z_nm`, `R_nm`, `r_tip_nm` | Tip dimensions in nm; pyramid `r_tip_nm` is its base half-side |
@@ -81,6 +87,11 @@ stop by residual or `mg_max_runtime`; a legacy `max_iter` is **not** an ordinary
 iteration cap. MPI `require_convergence` defaults to true and rejects an
 unconverged hierarchy before scientific output. Inspect final logs even when
 a shared-memory run writes an output after a deadline.
+
+An explicit `stopping` object adds maximum/both norms, regional checks,
+residual-norm history and a real `max_iterations` cap. Its scope defaults to
+the finest level; `all_levels` applies it throughout refinement. See the
+[exact schema and outcome/admission rules](docs/STOPPING_MODES.md).
 
 `residual_tolerance_mode` defaults to `absolute`. Explicit `relative_drive`
 normalizes **all** Dirichlet drives by a common maximum magnitude, converges

@@ -6,11 +6,17 @@ configs, Slurm launchers and small regressions. The maintained local package
 now defaults to lossless RAM-saving storage (`ram_compact`, in-place snapshot
 Jacobi, scalar residual reductions). See [RAM defaults and tradeoffs](RAM_SAVING.md).
 The separate October 4–6 V-cycle/certified-refinement upgrade remains cancelled.
-This October 9 source release includes the tested local RAM update; it does
-not imply a Fir deployment or a combined/hybrid numerical port.
+This October 26 source release consolidates the RAM release and newer opt-in
+stopping controls. See [publication provenance](docs/PUBLICATION_20261026.md).
+Cluster experiments and independent bundled/hybrid releases have separate
+qualification gates.
 
 ## Start here
 
+- [Current capabilities, source relationships and unfinished work](docs/CURRENT_STATE.md)
+- [Stopping modes, relative-drive residuals and honest exit classifications](docs/STOPPING_MODES.md)
+- [Current validation and scientific limitations](docs/VALIDATION_20261026.md)
+- [Source-only upload audit and review boundary](docs/UPLOAD_AUDIT_20261026.md)
 - [Adapted plotting merge, provenance and compatibility changes](docs/PLOTTING_MERGE_20261009.md)
 - [Local-only post-run menus and plotting functions](docs/MPI_PLOTTING.md)
 - [Configuration, numerical conventions and output contract](DOCUMENTATION.md)

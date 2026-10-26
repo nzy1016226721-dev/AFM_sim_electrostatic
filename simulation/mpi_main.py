@@ -139,9 +139,16 @@ def run_distributed_hierarchy(
     output_dir: str,
     case_tag: str,
     comm,
+    stopping_context=None,
 ) -> tuple[DistributedField, dict]:
     """Run all refinement levels for one voltage/position on every MPI rank."""
     mpi_cfg = cfg.get("mpi", {})
+    from .stopping import resolve_stopping, level_stopping
+    policy_spec = resolve_stopping(cfg.get("stopping"),float(cfg.get("res_tol_main",5e-5)))
+    case_began = time.monotonic()
+    case_budget = cfg.get("case_max_runtime_seconds")
+    if case_budget is not None and (not np.isfinite(float(case_budget)) or float(case_budget)<=0):
+        raise ValueError("case_max_runtime_seconds must be finite and positive")
     field_dtype = resolve_solver_dtype(cfg.get("solver_dtype", "float32"))
     from .ram_first import resolve_memory_mode, resolve_storage_options
     memory_mode = resolve_memory_mode(cfg.get("memory_mode", "standard"))
@@ -249,13 +256,17 @@ def run_distributed_hierarchy(
             diagnostic_iterations = diagnostic_iteration_limit(
                 cfg.get("diagnostic"), decomp.global_shape, solver_dtype=field_dtype,
             )
+            level_runtime = cfg.get("mg_max_runtime")
+            if case_budget is not None:
+                remaining = comm.bcast(max(0.,float(case_budget)-(time.monotonic()-case_began)) if comm.Get_rank()==0 else None,root=0)
+                level_runtime = remaining if level_runtime is None else min(float(level_runtime),remaining)
             field, report = solve_distributed_level(
                 field, mask, fixed_values, faces,
                 omega=float(mpi_cfg.get("damping", 1.0)),
                 tol=float(cfg.get("res_tol_main", 5e-5)),
                 # Preserve the ignored legacy cap, not a new stopping rule.
                 max_iter=mpi_cfg.get("max_iter"),
-                max_runtime=cfg.get("mg_max_runtime"),
+                max_runtime=level_runtime,
                 cpu_threads=int(cfg.get("cpu_threads", 1)),
                 output_dir=output_dir,
                 residual_check_interval=int(mpi_cfg.get("residual_check_interval", 10)),
@@ -263,6 +274,9 @@ def run_distributed_hierarchy(
                 epsilon_cells=epsilon_cells,
                 phi_update_mode=cfg.get("phi_update_mode"),
                 residual_accumulation=cfg.get("residual_accumulation"),
+                stopping=level_stopping(policy_spec,decomp.global_shape,target,float(cfg.get("res_tol_main",5e-5))),
+                stopping_context=dict(stopping_context or {},blocks=cfg.get("blocks",[]),
+                                      drive_scale_volts=drive_scale,case_tag=case_tag),
             )
         finally:
             if memory_mode == "ram_compact":
@@ -305,7 +319,8 @@ def run_distributed_hierarchy(
         if (
             report["reason"] != "converged"
             and not diagnostic_ok
-            and bool(mpi_cfg.get("require_convergence", True))
+            and (bool(mpi_cfg.get("require_convergence", True))
+                 or (policy_spec is not None and decomp.global_shape != target))
         ):
             raise RuntimeError(
                 f"MPI level {decomp.global_shape} ended with {report['reason']} after "
@@ -445,6 +460,12 @@ def batch_main_mpi(
                 output_dir=case_dir,
                 case_tag=case_tag,
                 comm=comm,
+                stopping_context={
+                    "center_nm": tuple((center[i]-origin[i])*domain_nm[i] for i in range(3)),
+                    "field_bounds_nm": tuple(v for i in range(3) for v in
+                        (-origin[i]*domain_nm[i],(1-origin[i])*domain_nm[i])),
+                    "cut_offsets_nm": cfg.get("save_cut_box_nm"),
+                },
             )
             shape = field.decomposition.global_shape
             probe_index = tuple(
@@ -455,6 +476,8 @@ def batch_main_mpi(
             npy_name = f"afm_phi_1_{voltage:.2f}V.npy"
             if movement_named:
                 npy_name = f"afm_phi_1{movement_suffix}_{voltage:.2f}V.npy"
+            from .stopping import trial_output_filename
+            npy_name = trial_output_filename(npy_name,cfg.get("stopping"),metadata["level_reports"])
 
             center_nm = tuple((center[i] - origin[i]) * domain_nm[i] for i in range(3))
             field_bounds_nm = tuple(

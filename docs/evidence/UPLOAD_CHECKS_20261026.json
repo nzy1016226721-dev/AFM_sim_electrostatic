@@ -1,0 +1,622 @@
+{
+  "format": "afm-source-upload-checks-v1",
+  "date": "2026-10-26",
+  "public_baseline": "8c4819d6f2ac2797774303502a740a50dd9858c0",
+  "regression": {
+    "passed": 265,
+    "deselected": 1,
+    "seconds": 83.17,
+    "selection": "tests excluding test_float64_diagnostic_runs_only_requested_iterations",
+    "python": "3.12.7",
+    "numpy": "1.26.4",
+    "numba": "0.63.1",
+    "pytest": "7.4.4",
+    "junit_sha256": "dc0e66bada3215475d50601bdb7505dfbb3c1140bedb38e7a71b89dff3ceeb27"
+  },
+  "configurations": {
+    "checked": 36,
+    "normal_ram_compact": 34,
+    "explicit_standard_float64_diagnostics": 2,
+    "inheritance_cpu_first_blocks_last_zoom_disabled": true
+  },
+  "manifest_contracts": {
+    "intact_passed": true,
+    "changed_missing_extra_rejected": true
+  },
+  "local_mpi": {
+    "python": "3.12.14",
+    "numpy": "2.3.5",
+    "numba": "0.67.0",
+    "mpi4py": "4.1.2",
+    "runtime": "Intel MPI 2021.18.1 Windows, two real ranks",
+    "cases": [
+      {
+        "case": "compact_rms",
+        "memory_mode": "ram_compact",
+        "process_grid": [
+          2,
+          1,
+          1
+        ],
+        "global_shape": [
+          16,
+          16,
+          16
+        ],
+        "ranks": [
+          {
+            "rank": 0,
+            "starts": [
+              0,
+              0,
+              0
+            ],
+            "counts": [
+              8,
+              16,
+              16
+            ],
+            "local_shape": [
+              10,
+              18,
+              18
+            ]
+          },
+          {
+            "rank": 1,
+            "starts": [
+              8,
+              0,
+              0
+            ],
+            "counts": [
+              8,
+              16,
+              16
+            ],
+            "local_shape": [
+              10,
+              18,
+              18
+            ]
+          }
+        ],
+        "finest_iterations": 1040,
+        "rms": 9.398678687391494e-06,
+        "maximum": 1.811981201171875e-05,
+        "reason": "converged",
+        "native_history_rows": 150,
+        "native_history_maximum_difference": 4.882760862301438e-13,
+        "internal_halo_values_compared": 512,
+        "arrays": [
+          {
+            "name": "afm_phi_1_0nm_-1.00V.npy",
+            "shape": [
+              16,
+              16,
+              16
+            ],
+            "byte_equal_payload": true,
+            "maximum_difference": 0.0,
+            "shared_sha256": "52561c12756a531a1084057a8af983222a2889a45493de56f4a80bd3d130acb6",
+            "mpi_sha256": "a1bcd9c3db81609f2619cae75c6583c64ea33360387ef08c2237ef3d3f9bd3cf"
+          },
+          {
+            "name": "afm_phi_1_0nm_-1.00V_cut_from_grid16x16x16.npy",
+            "shape": [
+              6,
+              6,
+              4
+            ],
+            "byte_equal_payload": true,
+            "maximum_difference": 0.0,
+            "shared_sha256": "e1ddc2a9415593d9f3474f0350439ee01aa89bb97839be785cc0c65682eeb284",
+            "mpi_sha256": "e1ddc2a9415593d9f3474f0350439ee01aa89bb97839be785cc0c65682eeb284",
+            "coordinate_receipts_equal": true,
+            "coordinate_receipt": {
+              "format": "afm-local-coordinates-v1",
+              "array_order": "xyz",
+              "potential_units": "V",
+              "coordinate_units": "nm",
+              "shape": [
+                6,
+                6,
+                4
+              ],
+              "source_shape": [
+                16,
+                16,
+                16
+              ],
+              "source_bounds_nm": [
+                -8.0,
+                8.0,
+                -8.0,
+                8.0,
+                -0.0,
+                16.0
+              ],
+              "source_index_slices": [
+                [
+                  5,
+                  11
+                ],
+                [
+                  5,
+                  11
+                ],
+                [
+                  2,
+                  6
+                ]
+              ],
+              "node_bounds_nm": [
+                -2.666666666666667,
+                2.666666666666666,
+                -2.666666666666667,
+                2.666666666666666,
+                2.1333333333333333,
+                5.333333333333333
+              ],
+              "note": "Bounds are first/last retained solver nodes, NOT crop-bin edges. No solver geometry changed."
+            }
+          }
+        ]
+      },
+      {
+        "case": "compact_both",
+        "memory_mode": "ram_compact",
+        "process_grid": [
+          2,
+          1,
+          1
+        ],
+        "global_shape": [
+          16,
+          16,
+          16
+        ],
+        "ranks": [
+          {
+            "rank": 0,
+            "starts": [
+              0,
+              0,
+              0
+            ],
+            "counts": [
+              8,
+              16,
+              16
+            ],
+            "local_shape": [
+              10,
+              18,
+              18
+            ]
+          },
+          {
+            "rank": 1,
+            "starts": [
+              8,
+              0,
+              0
+            ],
+            "counts": [
+              8,
+              16,
+              16
+            ],
+            "local_shape": [
+              10,
+              18,
+              18
+            ]
+          }
+        ],
+        "finest_iterations": 1041,
+        "rms": 9.33653032365505e-06,
+        "maximum": 1.7642974853515625e-05,
+        "reason": "converged",
+        "native_history_rows": 152,
+        "native_history_maximum_difference": 4.882760862301438e-13,
+        "internal_halo_values_compared": 512,
+        "arrays": [
+          {
+            "name": "afm_phi_1_0nm_-1.00V.npy",
+            "shape": [
+              16,
+              16,
+              16
+            ],
+            "byte_equal_payload": true,
+            "maximum_difference": 0.0,
+            "shared_sha256": "70dd11521100668d32d39ac3b9de7771b7b35e7a7ee92d99e434cf511db80a6c",
+            "mpi_sha256": "799fa6f7507264095a6b41fb2e06b660fbf41703ae2e90f28da39772d5d958d1"
+          },
+          {
+            "name": "afm_phi_1_0nm_-1.00V_cut_from_grid16x16x16.npy",
+            "shape": [
+              6,
+              6,
+              4
+            ],
+            "byte_equal_payload": true,
+            "maximum_difference": 0.0,
+            "shared_sha256": "ac5872fd581d203eab3e39227d8f04f4a8bd7f4c4c9a6489cbe8d150bfa9fdc1",
+            "mpi_sha256": "ac5872fd581d203eab3e39227d8f04f4a8bd7f4c4c9a6489cbe8d150bfa9fdc1",
+            "coordinate_receipts_equal": true,
+            "coordinate_receipt": {
+              "format": "afm-local-coordinates-v1",
+              "array_order": "xyz",
+              "potential_units": "V",
+              "coordinate_units": "nm",
+              "shape": [
+                6,
+                6,
+                4
+              ],
+              "source_shape": [
+                16,
+                16,
+                16
+              ],
+              "source_bounds_nm": [
+                -8.0,
+                8.0,
+                -8.0,
+                8.0,
+                -0.0,
+                16.0
+              ],
+              "source_index_slices": [
+                [
+                  5,
+                  11
+                ],
+                [
+                  5,
+                  11
+                ],
+                [
+                  2,
+                  6
+                ]
+              ],
+              "node_bounds_nm": [
+                -2.666666666666667,
+                2.666666666666666,
+                -2.666666666666667,
+                2.666666666666666,
+                2.1333333333333333,
+                5.333333333333333
+              ],
+              "note": "Bounds are first/last retained solver nodes, NOT crop-bin edges. No solver geometry changed."
+            }
+          }
+        ]
+      },
+      {
+        "case": "standard_both",
+        "memory_mode": "standard",
+        "process_grid": [
+          1,
+          2,
+          1
+        ],
+        "global_shape": [
+          16,
+          16,
+          16
+        ],
+        "ranks": [
+          {
+            "rank": 0,
+            "starts": [
+              0,
+              0,
+              0
+            ],
+            "counts": [
+              16,
+              8,
+              16
+            ],
+            "local_shape": [
+              18,
+              10,
+              18
+            ]
+          },
+          {
+            "rank": 1,
+            "starts": [
+              0,
+              8,
+              0
+            ],
+            "counts": [
+              16,
+              8,
+              16
+            ],
+            "local_shape": [
+              18,
+              10,
+              18
+            ]
+          }
+        ],
+        "finest_iterations": 1041,
+        "rms": 9.33653032365505e-06,
+        "maximum": 1.7642974853515625e-05,
+        "reason": "converged",
+        "native_history_rows": 152,
+        "native_history_maximum_difference": 4.882760862301438e-13,
+        "internal_halo_values_compared": 512,
+        "arrays": [
+          {
+            "name": "afm_phi_1_0nm_-1.00V.npy",
+            "shape": [
+              16,
+              16,
+              16
+            ],
+            "byte_equal_payload": true,
+            "maximum_difference": 0.0,
+            "shared_sha256": "70dd11521100668d32d39ac3b9de7771b7b35e7a7ee92d99e434cf511db80a6c",
+            "mpi_sha256": "799fa6f7507264095a6b41fb2e06b660fbf41703ae2e90f28da39772d5d958d1"
+          },
+          {
+            "name": "afm_phi_1_0nm_-1.00V_cut_from_grid16x16x16.npy",
+            "shape": [
+              6,
+              6,
+              4
+            ],
+            "byte_equal_payload": true,
+            "maximum_difference": 0.0,
+            "shared_sha256": "ac5872fd581d203eab3e39227d8f04f4a8bd7f4c4c9a6489cbe8d150bfa9fdc1",
+            "mpi_sha256": "ac5872fd581d203eab3e39227d8f04f4a8bd7f4c4c9a6489cbe8d150bfa9fdc1",
+            "coordinate_receipts_equal": true,
+            "coordinate_receipt": {
+              "format": "afm-local-coordinates-v1",
+              "array_order": "xyz",
+              "potential_units": "V",
+              "coordinate_units": "nm",
+              "shape": [
+                6,
+                6,
+                4
+              ],
+              "source_shape": [
+                16,
+                16,
+                16
+              ],
+              "source_bounds_nm": [
+                -8.0,
+                8.0,
+                -8.0,
+                8.0,
+                -0.0,
+                16.0
+              ],
+              "source_index_slices": [
+                [
+                  5,
+                  11
+                ],
+                [
+                  5,
+                  11
+                ],
+                [
+                  2,
+                  6
+                ]
+              ],
+              "node_bounds_nm": [
+                -2.666666666666667,
+                2.666666666666666,
+                -2.666666666666667,
+                2.666666666666666,
+                2.1333333333333333,
+                5.333333333333333
+              ],
+              "note": "Bounds are first/last retained solver nodes, NOT crop-bin edges. No solver geometry changed."
+            }
+          }
+        ]
+      },
+      {
+        "case": "compact_regions",
+        "memory_mode": "ram_compact",
+        "process_grid": [
+          1,
+          1,
+          2
+        ],
+        "global_shape": [
+          16,
+          16,
+          16
+        ],
+        "ranks": [
+          {
+            "rank": 0,
+            "starts": [
+              0,
+              0,
+              0
+            ],
+            "counts": [
+              16,
+              16,
+              8
+            ],
+            "local_shape": [
+              18,
+              18,
+              10
+            ]
+          },
+          {
+            "rank": 1,
+            "starts": [
+              0,
+              0,
+              8
+            ],
+            "counts": [
+              16,
+              16,
+              8
+            ],
+            "local_shape": [
+              18,
+              18,
+              10
+            ]
+          }
+        ],
+        "finest_iterations": 1041,
+        "rms": 9.33653032365505e-06,
+        "maximum": 1.7642974853515625e-05,
+        "reason": "converged",
+        "native_history_rows": 170,
+        "native_history_maximum_difference": 4.882760862301438e-13,
+        "internal_halo_values_compared": 512,
+        "arrays": [
+          {
+            "name": "afm_phi_1_0nm_-1.00V.npy",
+            "shape": [
+              16,
+              16,
+              16
+            ],
+            "byte_equal_payload": true,
+            "maximum_difference": 0.0,
+            "shared_sha256": "70dd11521100668d32d39ac3b9de7771b7b35e7a7ee92d99e434cf511db80a6c",
+            "mpi_sha256": "799fa6f7507264095a6b41fb2e06b660fbf41703ae2e90f28da39772d5d958d1"
+          },
+          {
+            "name": "afm_phi_1_0nm_-1.00V_cut_from_grid16x16x16.npy",
+            "shape": [
+              6,
+              6,
+              4
+            ],
+            "byte_equal_payload": true,
+            "maximum_difference": 0.0,
+            "shared_sha256": "ac5872fd581d203eab3e39227d8f04f4a8bd7f4c4c9a6489cbe8d150bfa9fdc1",
+            "mpi_sha256": "ac5872fd581d203eab3e39227d8f04f4a8bd7f4c4c9a6489cbe8d150bfa9fdc1",
+            "coordinate_receipts_equal": true,
+            "coordinate_receipt": {
+              "format": "afm-local-coordinates-v1",
+              "array_order": "xyz",
+              "potential_units": "V",
+              "coordinate_units": "nm",
+              "shape": [
+                6,
+                6,
+                4
+              ],
+              "source_shape": [
+                16,
+                16,
+                16
+              ],
+              "source_bounds_nm": [
+                -8.0,
+                8.0,
+                -8.0,
+                8.0,
+                -0.0,
+                16.0
+              ],
+              "source_index_slices": [
+                [
+                  5,
+                  11
+                ],
+                [
+                  5,
+                  11
+                ],
+                [
+                  2,
+                  6
+                ]
+              ],
+              "node_bounds_nm": [
+                -2.666666666666667,
+                2.666666666666666,
+                -2.666666666666667,
+                2.666666666666666,
+                2.1333333333333333,
+                5.333333333333333
+              ],
+              "note": "Bounds are first/last retained solver nodes, NOT crop-bin edges. No solver geometry changed."
+            }
+          }
+        ]
+      }
+    ],
+    "full_cut_pair_count": 8,
+    "bitwise_potential_values_compared": 16960,
+    "uniquely_owned_nodes": 16384,
+    "internal_halo_values_compared": 2048,
+    "native_history_row_pairs": 624,
+    "native_norm_comparisons": 1248,
+    "native_history_rtol": 5e-12,
+    "history_note": "MPI CSV rounds norms to 12 digits; histories are not asserted byte-identical"
+  },
+  "frozen_plateau_source_replay": [
+    {
+      "manifest": "SOURCE_MANIFEST.json",
+      "sha256": "f6321f4fed4cf9d3d2ab8d4526dfc0a11a003cdebcfbb6ea7a82bd6d49525bc0",
+      "members_rehashed": 188
+    },
+    {
+      "manifest": "PAYLOAD_MANIFEST.json",
+      "sha256": "289a4a456e7efa3a0f3355b6a19fdf44427373d3ce99649fd8e700848c93ba19",
+      "members_rehashed": 189
+    }
+  ],
+  "numerical_module_sha256": {
+    "__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compact_solver.py": "1c9a480a2ed9b7697e9e1b2518b18dbf0eab7253c8ebf01e1c7225acd61422f0",
+    "compact_storage.py": "97ef31fb52ab3ceac2a701fb18626ca8574f3264a1926d4aa796e8caa7ce0552",
+    "config_defaults.py": "3738b76df1b300f3a29c54609cc529a575c11cd50e602fd33b83377d9c6285c8",
+    "coordinates.py": "085a37badb5a2550c290fae08ddcee0a26d1c86fc288723875cb8d7f582bff42",
+    "io_utils.py": "95822e6fcd42e2d3767c99efb4861736f79e8d5e5f8bc2390fcf5d2bbeac0e73",
+    "main_loop.py": "d5b661f132f6fcf634f16da2e92abeceffb94a46b570075e6ee2cfcf38af03d6",
+    "materials.py": "05e9770cd6dbf7932205b189c2071e97cc33bdcf107cb921831dfe97e85c8c52",
+    "materials_bounded.py": "130d40d6257932b64386815177c2ed7bbf4f69f3a9340ae32fd82cc36592ef9d",
+    "memory.py": "7d942f0d1ecef7541c0e3bb02f3d1b267bb7b0f8a8b7b94824903e6f7fb3141f",
+    "mpi_config.py": "dc5ddfec30704cbd891cbd6c73c81d85be7788ab6def3ff51eedc36d49f6c088",
+    "mpi_domain.py": "c820a7a9c0254cb728c879d2b9040f123e5da9d8095918ca848c5d7444201b06",
+    "mpi_io.py": "bdf0fd9d9dcea488f73a06f7595c59b2e96a4535b87b927e0e69213616410351",
+    "mpi_main.py": "f22dbe90e23803ee77bef46b06d13b6cb0a812c39f80b5c6f6916413b6e3e20b",
+    "numerics.py": "4d6d340b22ad3422c7dc76ab808e74feaa337ede29f5dc95b174d286cf723db6",
+    "output_coordinates.py": "2f4665c48155c59559de02975df50f0597fe0feb8fe042bc464942bc9d8a027b",
+    "parallel.py": "236735097290e2d9fef0ed073efabfa1f755b01639494fd247c922ab4f5ad7a7",
+    "plotting.py": "cd8efc992b9dba52ecce65df14ef73ba7a3851a13dedcd486131fefb4d51fc1b",
+    "presimulation.py": "8ebe6d03445637c35d3ad31163f80211ada7731e574e30990347055483123ad6",
+    "ram_first.py": "03546f7380292e075846bd4c0057f82a5a49fb9b14772d9f5e3c26ec22ae0dd8",
+    "runtime.py": "9073dbf58922142f037c81845c07a88047ecc2bc86ca2c708feea8f9d2f25e30",
+    "solver.py": "9e6ea1fd339cd40e6317dd4dfcacf056ab1cf20e57fa79ca8e81c53c8f68f4fe",
+    "stopping.py": "8b804531ca6e8f4a5ff06faa5cb757e919189d6da53ef7deb5308ce4f8d959ff",
+    "stopping_stats.py": "987667404c91b7053f19fd645e642f401df718856f687cf41f9ba560f7fa4076",
+    "zoom.py": "710e9b4192de50fe6c74d0e0bc32b157c7c3eec7044dad06d18db7efae8506b0"
+  },
+  "limitations": [
+    "Small local checks only; no new Fir action or inter-node qualification",
+    "No large-grid convergence, ultimate precision floor or maximum phi-error certificate",
+    "Full NPY headers may differ; float32 payload bits were compared separately",
+    "Shared full-field sidecars are not required by its maintained contract; cuts were checked",
+    "A first analysis-harness sidecar assumption failed; original successful solves were replayed, not repeated",
+    "Candidate manifest integrity is separate from numerical/scientific qualification"
+  ]
+}

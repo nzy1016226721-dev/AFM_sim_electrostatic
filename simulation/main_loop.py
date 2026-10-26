@@ -93,7 +93,9 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
                        solver_dtype="float32",
                        tip_shape="pyramid",
                        diagnostic=None, memory_mode="standard",
-                       phi_update_mode=None, residual_accumulation=None):
+                       phi_update_mode=None, residual_accumulation=None,
+                       stopping=None, stopping_context=None, require_convergence=None,
+                       case_max_runtime_seconds=None):
     """Run a multiresolution AFM electrostatic simulation.
 
     Starts from an 8x8x8 grid for targets at or below 512 cells per axis and
@@ -183,11 +185,21 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
         print("Starting multiresolution AFM simulation...")
 
     nx_target, ny_target, nz_target = int(nx), int(ny), int(nz)
+    case_began = time.monotonic()
+    if case_max_runtime_seconds is not None and (not np.isfinite(float(case_max_runtime_seconds)) or float(case_max_runtime_seconds)<=0):
+        raise ValueError("case_max_runtime_seconds must be finite and positive")
+    from .stopping import resolve_stopping, level_stopping
+    stopping = resolve_stopping(stopping, tol)
+    require_convergence = (stopping is not None) if require_convergence is None else bool(require_convergence)
+    level_reports = []
     field_dtype = resolve_solver_dtype(solver_dtype)
     tolerance_mode = resolve_residual_tolerance_mode(residual_tolerance_mode)
     solver_vtip, solver_vgate, drive_scale = prepare_drive_voltages(
         Vtip, Vgate, tolerance_mode
     )
+    policy_context = dict(stopping_context or {})
+    policy_context["blocks"] = blocks or []
+    policy_context["drive_scale_volts"] = drive_scale
     if tolerance_mode == "relative_drive":
         print(
             "Voltage-normalized residual mode: "
@@ -336,13 +348,17 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
                 memory_context = nullcontext(None)
 
             with memory_context as mem_tracker:
+                level_runtime = mg_max_runtime
+                if case_max_runtime_seconds is not None:
+                    remaining = max(0.,float(case_max_runtime_seconds)-(time.monotonic()-case_began))
+                    level_runtime = remaining if level_runtime is None else min(float(level_runtime),remaining)
                 if live_memory_tracker is not None:
                     live_memory_tracker.set_stage(f"solving main {nx}x{ny}x{nz}")
                 phi_solution, res_m = mg_3d_masked(solver_vtip, phi, boundary_mask,
                                             damping=damping, nu1=nu1, nu2=nu2,
                                             max_iter=max_iter, tol=tol,
                                             verbose=verbose, eps_r=eps_cell, eps=eps,
-                                            mg_max_runtime=mg_max_runtime,
+                                            mg_max_runtime=level_runtime,
                                             output_dir=output_dir,
                                             plotting_enabled=plotting_enabled,
                                             cpu_threads=cpu_threads,
@@ -350,7 +366,9 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
                                             diagnostic_iterations=diagnostic_iterations,
                                             memory_mode=memory_mode,
                                             phi_update_mode=phi_update_mode,
-                                            residual_accumulation=residual_accumulation)
+                                            residual_accumulation=residual_accumulation,
+                                            stopping=level_stopping(stopping,(nx,ny,nz),(nx_target,ny_target,nz_target),tol),
+                                            stopping_context=policy_context)
 
             if memory_tracking:
                 log_memory_usage(f"main {nx}x{ny}x{nz}", mem_tracker.peak_gb, output_dir=output_dir)
@@ -366,6 +384,10 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
                 w.writerow([level, nx, ny, nz, f"{level_elapsed:.6f}"])
 
             is_final = (nx == nx_target and ny == ny_target and nz == nz_target)
+            level_reports.append(dict(MG_TIME,shape=(nx,ny,nz)))
+            if stopping is not None and diagnostic_iterations is None and MG_TIME.get("reason") != "converged":
+                if require_convergence or not is_final:
+                    raise RuntimeError(f"AFM level {(nx,ny,nz)} ended with {MG_TIME.get('reason')}; no scientific field admitted")
             if save_all_levels and level_name_prefix and nx >= 32 and not is_final:
                 level_base = os.path.splitext(level_name_prefix)[0]
                 level_name = f"{level_base}_level{nx}x{ny}x{nz}.npy"
@@ -482,6 +504,7 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
 
     results = {
         'phi': phi_solution,
+        'level_reports': level_reports,
         'residual': res_m,
         'tip_mask': tip_mask, 'boundary_mask': boundary_mask,
         'parameters': {'nx': nx, 'ny': ny, 'nz': nz,
@@ -1317,8 +1340,21 @@ def batch_main(config_path=None, config_dir=".", plotting_override=None,
                     memory_mode=cfg.get("memory_mode", "standard"),
                     phi_update_mode=cfg.get("phi_update_mode"),
                     residual_accumulation=cfg.get("residual_accumulation"),
+                    stopping=cfg.get("stopping"),
+                    stopping_context={
+                        "center_nm": tuple((center[i] - physical_cfg.get("origin_fraction",(0.5,0.5,0.0))[i]) * domain_nm[i] for i in range(3)),
+                        "field_bounds_nm": tuple(v for i in range(3) for v in
+                            (-physical_cfg.get("origin_fraction",(0.5,0.5,0.0))[i]*domain_nm[i],
+                             (1-physical_cfg.get("origin_fraction",(0.5,0.5,0.0))[i])*domain_nm[i])),
+                        "cut_offsets_nm": cfg.get("save_cut_box_nm"),
+                        "case_tag": npy_name,
+                    },
+                    require_convergence=cfg.get("require_convergence"),
+                    case_max_runtime_seconds=cfg.get("case_max_runtime_seconds"),
                 )
 
+                from .stopping import trial_output_filename
+                npy_name = trial_output_filename(npy_name,cfg.get("stopping"),results.get("level_reports"))
                 phi = results["phi"]
                 nx, ny, nz = phi.shape
                 ix = int(x_frac * (nx - 1))

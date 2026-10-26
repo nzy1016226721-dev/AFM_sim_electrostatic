@@ -300,8 +300,11 @@ def residual_cells_shared(field, epsilon, mask, accumulation="row_array", volume
 def solve_ram_first(phi, epsilon, mask, *, damping, tol, cpu_threads,
                     max_runtime, output_dir, verbose=False,
                     diagnostic_iterations=None, phi_update_mode=None,
-                    residual_accumulation=None):
+                    residual_accumulation=None, stopping=None, stopping_context=None):
     from .solver import MG_TIME, log_residual_csv
+    from .stopping import StoppingController
+    stop = (StoppingController(stopping, tol, phi.shape, stopping_context, output_dir)
+            if stopping is not None else None)
 
     if phi.dtype != np.float32 or epsilon.dtype != np.float32:
         raise ValueError("ram_first never changes precision: use float32 inputs")
@@ -320,6 +323,7 @@ def solve_ram_first(phi, epsilon, mask, *, damping, tol, cpu_threads,
     iteration = 0
     while True:
         iteration += 1
+        update_began = time.monotonic() if stop is not None else 0.
         destination = phi
         if target is not None:
             np.copyto(target, phi)
@@ -333,20 +337,37 @@ def solve_ram_first(phi, epsilon, mask, *, damping, tol, cpu_threads,
         if target is not None:
             phi, target = destination, phi
         elapsed = time.monotonic() - started
+        if stop is not None:
+            stop.timings["update_restore_seconds"] += time.monotonic()-update_began
         check = iteration <= 5 or iteration % 10 == 0
+        if stop is not None:
+            check = stop.needs_check(iteration, check) or stop.limited(iteration)
         diagnostic_end = diagnostic_iterations is not None and iteration >= int(diagnostic_iterations)
         timeout = max_runtime is not None and elapsed > float(max_runtime)
         if check or diagnostic_end or timeout:
+            residual_began = time.monotonic() if stop is not None else 0.
             rms, maximum = residual_cells_shared(phi, epsilon, mask, accumulation, residual_volume)
+            if stop is not None:
+                stop.timings["global_residual_seconds"] += time.monotonic()-residual_began
+            stop_reason = "running"
+            if stop is not None and diagnostic_iterations is None:
+                from .stopping_stats import extra_statistics
+                extra = extra_statistics(phi,epsilon,owned_mask,(1,1,1),phi.shape,stop)
+                count = math.prod(owned_mask.shape) - int(np.count_nonzero(owned_mask))
+                stop_reason = stop.observe(iteration,rms,maximum,count,extra)
             log_residual_csv(iteration, rms, maximum, output_dir=output_dir)
             if verbose:
                 print(f"iter {iteration:6d}: res_avg={rms:.5e}, res_max={maximum:.5e}")
         reason = "running"
-        if diagnostic_iterations is None and check and rms < float(tol):
+        if diagnostic_iterations is None and stop is not None and (check or timeout):
+            reason = stop_reason
+        elif diagnostic_iterations is None and stop is None and check and rms < float(tol):
             reason = "converged"
         elif diagnostic_end:
             reason = "diagnostic_iteration_limit"
         elif timeout:
+            reason = "time_limit"
+        if reason == "running" and timeout:
             reason = "time_limit"
         MG_TIME.update(elapsed=elapsed, iterations=iteration, residual=float(rms),
                        residual_max=float(maximum), reason=reason, memory_mode="ram_first",
@@ -355,5 +376,7 @@ def solve_ram_first(phi, epsilon, mask, *, damping, tol, cpu_threads,
                        phi_buffer_bytes=0 if target is None else int(target.nbytes),
                        residual_workspace_bytes=0 if residual_volume is None else int(residual_volume.nbytes))
         if reason != "running":
+            if stop is not None:
+                MG_TIME["stopping"] = stop.summary()
             print(f"RAM-first {reason}: {iteration} iterations in {elapsed:.2f} s; residual={rms:.5e}")
             return phi, None

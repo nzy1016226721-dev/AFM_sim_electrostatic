@@ -1,24 +1,24 @@
 {
-  "format": "afm-standalone-source-manifest-v3",
-  "date": "2026-10-09",
-  "scope": "Adapted local-only plotting merge; lossless RAM solver/config/job bytes unchanged.",
-  "merge_parents": [
-    "3b7ba49af617150e752748a7c34296de27392f36",
-    "2be34adda9ea3948f82287a4b5cfa26b62631986"
-  ],
-  "hash_algorithm": "SHA-256",
-  "manifest_excludes_itself": true,
-  "candidate_source_index_sha256": "767b85854138085811a84bdeca706c597d165f19bf934c22294526ee13e1e78c",
+  "format": "afm-standalone-source-manifest-v4",
+  "snapshot_date": "2026-10-26",
+  "base_git_commit": "8c4819d6f2ac2797774303502a740a50dd9858c0",
+  "scope": "Standalone source-only October 26 direct branch publication",
+  "self_excluded": "docs/SOURCE_MANIFEST.json",
   "files": [
     {
       "path": ".gitattributes",
-      "bytes": 246,
-      "sha256": "c54d96d84f96d25b4fbc54eb7c7e63d7ad9ccee4573f2f5763a519b40f53a655"
+      "bytes": 157,
+      "sha256": "9904357abcb926c46eedb373e99ba480be31585981cb1fb5619563f46f3d4559"
     },
     {
       "path": ".gitignore",
       "bytes": 226,
       "sha256": "5329ccb19827a361e7b919e84203f1369ccbf3f0609129b3bd70947f9c767eec"
+    },
+    {
+      "path": "AGENTS.md",
+      "bytes": 1848,
+      "sha256": "6066d0e5316ab7e782d97d0322689a0068c8649e643e32ae280b2292a271e068"
     },
     {
       "path": "API_Docstrings.md",
@@ -27,13 +27,13 @@
     },
     {
       "path": "CHANGELOG.md",
-      "bytes": 36996,
-      "sha256": "0592419b0a92df4bff0f238b10a1af49eebb5e8ba54fa10544a234a5e53077a4"
+      "bytes": 38568,
+      "sha256": "aabb1683c9255e51f9f417cda6bdb2354d1e28087c0680cf4c0698a11826c5d4"
     },
     {
       "path": "DOCUMENTATION.md",
-      "bytes": 7693,
-      "sha256": "5971a615491fca08b3891f24877f870a972019c5a67194132aeaade61174330e"
+      "bytes": 8470,
+      "sha256": "80527f005bbe4baaf1e0fd8d2587de772edb314a77dfdd6040993865ee731dda"
     },
     {
       "path": "MPI_PARITY_VALIDATION_20260902.md",
@@ -42,13 +42,13 @@
     },
     {
       "path": "RAM_SAVING.md",
-      "bytes": 6988,
-      "sha256": "8e1fd2296fcd0254c97cfe25514c0c502bfc2dcb5048f38efc8e14f4bb83b4f5"
+      "bytes": 7515,
+      "sha256": "14db791fb1909a41827b85f0d15247b20520363f1cff0bd545d5b276d3ffd4ec"
     },
     {
       "path": "README.md",
-      "bytes": 4734,
-      "sha256": "ea420739fbada44e8ce1b8ec8efc82513c8ca5d4f275b6adcf79b9c54419ec9b"
+      "bytes": 5195,
+      "sha256": "32d6cfbe017ebe5c731575e67495b84f6af312330465fa69e2ee6a32953fd76b"
     },
     {
       "path": "README_ALLIANCE.md",
@@ -231,6 +231,11 @@
       "sha256": "c664b028863d70f184db85ad6997e5d64c7cbde45c16c99d1f7787c1b8e2b7d1"
     },
     {
+      "path": "docs/CURRENT_STATE.md",
+      "bytes": 5657,
+      "sha256": "258ff7a8b796ed3ea14f51c4dc4627b4cb6fea59c319b85ffdcc0bdb6dd42e96"
+    },
+    {
       "path": "docs/MPI_PLOTTING.md",
       "bytes": 4750,
       "sha256": "e194ee38f7c6ca7a1a04f12f46132cbad960585aa7a4d6ccc4f4778740373afb"
@@ -246,14 +251,44 @@
       "sha256": "d6c2b2f88118a13fff4ef16316cadbb49488e0f74e96136263f567c674e0d95a"
     },
     {
+      "path": "docs/PUBLICATION_20261026.md",
+      "bytes": 2493,
+      "sha256": "1498fb928b283455211a178b8c5b032c378faf1141c05beea392cdd8808d9f2e"
+    },
+    {
       "path": "docs/RAM_FIRST_PROVENANCE.md",
       "bytes": 2711,
       "sha256": "224c6c91a65ae62d86286a49a7fc9d216c623b8a9c8220b95ecdd0907563dc4c"
     },
     {
       "path": "docs/RAM_VALIDATION_20261009.md",
-      "bytes": 6303,
-      "sha256": "ab6988bc264c111cd5eadfe167b6d6a604e71855d47af49446cebeec5fb278e7"
+      "bytes": 6579,
+      "sha256": "e3d55dd8ff7ef9232af0b226523f72013cf7debd2c55c3d34deaeec6bb447e35"
+    },
+    {
+      "path": "docs/STOPPING_MODES.md",
+      "bytes": 5974,
+      "sha256": "4c85f90533f47df7143f783754e79c7da481b5c8f0d8ab2fe6f3516e41593232"
+    },
+    {
+      "path": "docs/UPLOAD_AUDIT_20261026.md",
+      "bytes": 5668,
+      "sha256": "6222077ca4661b40511f96ee0074cd251cd0331df66a0c83e6260e1afacefcb5"
+    },
+    {
+      "path": "docs/VALIDATION_20261026.md",
+      "bytes": 7797,
+      "sha256": "da3e5cd0f9efdad88726fa2f3995df6c27e80775897c47254b2073e9c5d63a0b"
+    },
+    {
+      "path": "docs/evidence/UPLOAD_CHECKS_20261026.json",
+      "bytes": 18349,
+      "sha256": "a0ed6b13a9fa64aee423c46d0cd1c9ed2d95571c8e7e0795d1e40106c8c4b03a"
+    },
+    {
+      "path": "docs/history/SOURCE_MANIFEST_20261009.json",
+      "bytes": 27271,
+      "sha256": "a75de22e271d06314dffea9ff8afd444780ae243807f98e813e914315cc8e904"
     },
     {
       "path": "jobs/PARITY_4096_TOL1E6.md",
@@ -587,8 +622,8 @@
     },
     {
       "path": "simulation/compact_solver.py",
-      "bytes": 4889,
-      "sha256": "d486f7917567de527b3aa2f6c2cb8b9913a649e552810eeea9450974ba464d71"
+      "bytes": 6319,
+      "sha256": "1c9a480a2ed9b7697e9e1b2518b18dbf0eab7253c8ebf01e1c7225acd61422f0"
     },
     {
       "path": "simulation/compact_storage.py",
@@ -597,13 +632,13 @@
     },
     {
       "path": "simulation/config_defaults.py",
-      "bytes": 1533,
-      "sha256": "0fe150fec990d586a4f8f56b044278be1c01f30741db6137fe3bad7d034aec26"
+      "bytes": 2175,
+      "sha256": "3738b76df1b300f3a29c54609cc529a575c11cd50e602fd33b83377d9c6285c8"
     },
     {
       "path": "simulation/coordinates.py",
-      "bytes": 10297,
-      "sha256": "a391c1b42404e10d73fd3532f25c81ba33bf9b2303ee65b19ac63c0027024171"
+      "bytes": 10560,
+      "sha256": "085a37badb5a2550c290fae08ddcee0a26d1c86fc288723875cb8d7f582bff42"
     },
     {
       "path": "simulation/io_utils.py",
@@ -612,8 +647,8 @@
     },
     {
       "path": "simulation/main_loop.py",
-      "bytes": 55707,
-      "sha256": "26fb8f2f31b446683908ef0fda95a118872e8fa081a0cb1702bd9e129bf9bdf6"
+      "bytes": 58385,
+      "sha256": "d5b661f132f6fcf634f16da2e92abeceffb94a46b570075e6ee2cfcf38af03d6"
     },
     {
       "path": "simulation/materials.py",
@@ -637,8 +672,8 @@
     },
     {
       "path": "simulation/mpi_domain.py",
-      "bytes": 56637,
-      "sha256": "d79991c74484504ea37bb6751f25c5edd85c6fff34f6013ce8ceea942b98014e"
+      "bytes": 58676,
+      "sha256": "c820a7a9c0254cb728c879d2b9040f123e5da9d8095918ca848c5d7444201b06"
     },
     {
       "path": "simulation/mpi_io.py",
@@ -647,8 +682,8 @@
     },
     {
       "path": "simulation/mpi_main.py",
-      "bytes": 20939,
-      "sha256": "f2cb886f29b31e0fcc290eaf915e2a4a919b4b6fae5fbc2c764a8d12bfb20321"
+      "bytes": 22612,
+      "sha256": "f22dbe90e23803ee77bef46b06d13b6cb0a812c39f80b5c6f6916413b6e3e20b"
     },
     {
       "path": "simulation/numerics.py",
@@ -677,8 +712,8 @@
     },
     {
       "path": "simulation/ram_first.py",
-      "bytes": 17877,
-      "sha256": "c83eed8bc99c2aa62f8c5c5ecf5dc341fd2383b8f594cff96cc4547613910965"
+      "bytes": 19304,
+      "sha256": "03546f7380292e075846bd4c0057f82a5a49fb9b14772d9f5e3c26ec22ae0dd8"
     },
     {
       "path": "simulation/runtime.py",
@@ -687,8 +722,18 @@
     },
     {
       "path": "simulation/solver.py",
-      "bytes": 29399,
-      "sha256": "d998da99a411cd707aca9cb834398068ba34b3b357a966c07fe3ee33fd7fff89"
+      "bytes": 31337,
+      "sha256": "9e6ea1fd339cd40e6317dd4dfcacf056ab1cf20e57fa79ca8e81c53c8f68f4fe"
+    },
+    {
+      "path": "simulation/stopping.py",
+      "bytes": 14496,
+      "sha256": "8b804531ca6e8f4a5ff06faa5cb757e919189d6da53ef7deb5308ce4f8d959ff"
+    },
+    {
+      "path": "simulation/stopping_stats.py",
+      "bytes": 9180,
+      "sha256": "987667404c91b7053f19fd645e642f401df718856f687cf41f9ba560f7fa4076"
     },
     {
       "path": "simulation/zoom.py",
@@ -806,9 +851,24 @@
       "sha256": "d92bcb1e773694e9cb3343b5e80e3b367ba3f1e70874ebdefc877478c73beec8"
     },
     {
+      "path": "tests/test_stopping.py",
+      "bytes": 6604,
+      "sha256": "a637b1f659c47db3f266dadcabd408fb094d4160522148d9cf152ffc6536f932"
+    },
+    {
+      "path": "tests/test_stopping_solver.py",
+      "bytes": 5692,
+      "sha256": "6243b40484b09077baaac1c4754d64f251d0a977b16a30839278c2a25ae42b0e"
+    },
+    {
       "path": "tests/test_tip_pyramid.py",
       "bytes": 6810,
       "sha256": "d1c2fd916d878456b0266687e7562775376d67dd594aa52e60661aa5cabca4d7"
+    },
+    {
+      "path": "tools/verify_source.py",
+      "bytes": 2982,
+      "sha256": "b95c9ae386c74afa8172d126504a82d13655532fb43f87d2fd8becaaac9ad8f6"
     }
   ]
 }

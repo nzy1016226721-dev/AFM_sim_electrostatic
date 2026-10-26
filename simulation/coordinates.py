@@ -36,8 +36,11 @@ def voxel_nm(cfg):
 
 
 def _axis_length_nm(cfg, axis):
-    """Return the physical main-domain size as voxel count times voxel edge."""
-    return _grid_resolution(cfg, axis) * voxel_nm(cfg)
+    """Preserve legacy N*h, with explicit endpoint-node study opt-in."""
+    mode = cfg.get("coordinate_system",{}).get("extent_convention","voxel_count")
+    if mode not in ("voxel_count","node_intervals"):
+        raise ValueError("coordinate_system.extent_convention must be voxel_count or node_intervals")
+    return (_grid_resolution(cfg,axis) - int(mode == "node_intervals")) * voxel_nm(cfg)
 
 
 def physical_domain_nm(cfg):

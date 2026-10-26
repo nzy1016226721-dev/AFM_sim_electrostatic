@@ -1,5 +1,31 @@
 # AFM Simulation Package — Change Log
 
+## 2026-10-26 — Direct MPI branch publication
+
+- Published the audited standalone snapshot to `afm-parallelized-mpi` under
+  explicit user instruction to update that branch directly.
+- Updated publication-status Markdown and the source manifest; all tested
+  solver, configuration, job, plotting and test bytes are preserved from the
+  173-file audited candidate. The extra file is the publication record.
+- Retained RAM-saving defaults, opt-in stopping and the documented scientific/
+  cluster/hybrid qualification limits. No new numerical or Fir action.
+- See [publication provenance](docs/PUBLICATION_20261026.md).
+
+## 2026-10-26 — Unpublished AFM consolidation and upload candidate
+
+- Consolidated documentation of the already implemented opt-in stopping seam:
+  RMS/maximum/both, drive normalization, cut/QD reductions, norm history,
+  observation/detector outcomes, explicit iteration caps and field admission.
+- Added a concise standalone agent handoff, current capability/source matrix,
+  dated numerical-evidence limits and a source-only publication audit.
+- Retained the October 9 manifest as history and added a portable SHA-256
+  source verifier for a new reviewed candidate manifest.
+- Preserved all existing simulation/configuration/job/plotting bytes and the
+  RAM-saving default during consolidation. No new numerical algorithm,
+  default detector threshold, Eric serial merge, hybrid port or cluster action.
+- Publication remains unperformed. See [candidate audit](docs/UPLOAD_AUDIT_20261026.md)
+  for the scope and separate review/publication gate.
+
 ## 2026-10-09 — Adapted local-only plotting merge
 
 - Consolidated the plotting-integration history onto the maintained RAM release;

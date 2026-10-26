@@ -1,5 +1,10 @@
 # Lossless RAM release: validation and provenance — October 9, 2026
 
+This document records the October 9 release. Later distributed measurements,
+stopping studies and limitations are consolidated in
+[October 26 validation](VALIDATION_20261026.md); statements below that a port or
+cluster study was unexecuted apply to this original checkpoint.
+
 ## What this release contains
 
 The standalone JSON entry points now default to lossless `ram_compact` epsilon

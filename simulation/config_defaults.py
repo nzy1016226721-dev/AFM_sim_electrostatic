@@ -18,6 +18,18 @@ def apply_solver_defaults(cfg):
     ``standard`` is the explicit legacy/float64-diagnostic opt-out.
     """
     out = deepcopy(cfg)
+    if out.get("stopping") is not None:
+        if __package__:
+            from .stopping import resolve_stopping
+        else:
+            # The bundle's license-free planner loads this file by path.
+            import importlib.util
+            from pathlib import Path
+            spec = importlib.util.spec_from_file_location("_afm_stopping_policy",Path(__file__).with_name("stopping.py"))
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            resolve_stopping = module.resolve_stopping
+        out["stopping"] = resolve_stopping(out["stopping"],out.get("res_tol_main",1e-6))
     mode = out.get("memory_mode")
     mode = DEFAULT_MEMORY_MODE if mode is None else str(mode).lower()
     if mode not in ("standard", *RAM_MODES):
