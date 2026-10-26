@@ -9,83 +9,132 @@ MG_TIME = {"elapsed": 0.0}
 RESIDUAL_CSV = "residual_history.csv"
 
 
+# def build_downward_pointing_tip_old(nx, ny, nz, tip_z=0.2, R=0.05, r_tip=0.15,
+#                                 aspect_ratio=2.0, verbose=True):
+#     """Generate a boolean mask for a hyperbolic AFM tip geometry.
+
+#     The tip is modelled as a hyperboloid pointing downward along z,
+#     centred at (0.5, 0.5) in xy, with curvature radius R, truncation
+#     radius r_tip, and vertical aspect ratio.
+
+#     Parameters
+#     ----------
+#     nx : int
+#         Grid points in x.
+#     ny : int
+#         Grid points in y.
+#     nz : int
+#         Grid points in z.
+#     tip_z : float, optional
+#         Fractional z-coordinate of the tip apex (default: 0.2).
+#     R : float, optional
+#         Curvature radius (fractional, default: 0.05).
+#     r_tip : float, optional
+#         Tip truncation radius (fractional, default: 0.15).
+#     aspect_ratio : float, optional
+#         Height/radius aspect ratio (default: 2.0).
+#     verbose : bool, optional
+#         If True, print geometry info (default: True).
+
+#     Returns
+#     -------
+#     mask : np.ndarray (bool)
+#         3D boolean mask where True indicates tip voxels.
+#     z_tip : float
+#         Fractional z-coordinate of the tip apex.
+#     z_base : float
+#         Fractional z-coordinate of the tip base.
+#     """
+
+#     x = np.linspace(0, 1, nx)
+#     y = np.linspace(0, 1, ny)
+#     z = np.linspace(0, 1, nz)
+#     cx, cy = 0.5, 0.5
+#     tip_z_idx = int(tip_z * (nz - 1))
+#     z_tip = z[tip_z_idx]
+#     mask = np.zeros((nx, ny, nz), dtype=bool)
+
+#     theta_asym = np.arctan(aspect_ratio)
+#     a = R * np.tan(theta_asym)
+#     b = R * np.tan(theta_asym) ** 2
+
+#     z0 = z_tip - b
+#     z_base = z0 + np.sqrt(b**2 * (1 + (r_tip**2 / a**2)))
+
+#     if verbose:
+#         print(f"\n[Hyperbolic AFM Tip]")
+#         print(f"  Aspect ratio (tan{chr(952)}) = {aspect_ratio:.3f}, {chr(952)}_asym = {np.degrees(theta_asym):.2f}{chr(176)}")
+#         print(f"  a = {a:.6f}, b = {b:.6f}")
+#         print(f"  Curvature radius at tip R = {R:.4f}")
+#         print(f"  Tip_z = {z_tip:.3f}, Base_z = {z_base:.3f}, r_tip = {r_tip:.3f}")
+
+#     for k in range(nz):
+#         zk = z[k]
+#         if zk < z_tip or zk > z_base:
+#             continue
+#         dz = zk - z0
+#         if dz**2 < b**2:
+#             continue
+#         r_max = a * np.sqrt((dz**2 / b**2) - 1)
+#         r_max = min(r_max, r_tip)
+#         for j in range(ny):
+#             for i in range(nx):
+#                 r = np.sqrt((x[i] - cx)**2 + (y[j] - cy)**2)
+#                 if r <= r_max:
+#                     mask[i, j, k] = True
+
+#     if verbose:
+#         print(f"  Tip_z = {z_tip:.3f}, Base_z = {z_base:.3f}, Total points: {np.sum(mask)}")
+#        return mask, z_tip, z_base
+
+
 def build_downward_pointing_tip(nx, ny, nz, tip_z=0.2, R=0.05, r_tip=0.15,
                                 aspect_ratio=2.0, verbose=True):
-    """Generate a boolean mask for a hyperbolic AFM tip geometry.
+    """
+    Generates a boolean mask for a hyperbolic AFM tip geometry.
 
     The tip is modelled as a hyperboloid pointing downward along z,
     centred at (0.5, 0.5) in xy, with curvature radius R, truncation
     radius r_tip, and vertical aspect ratio.
 
-    Parameters
-    ----------
-    nx : int
-        Grid points in x.
-    ny : int
-        Grid points in y.
-    nz : int
-        Grid points in z.
-    tip_z : float, optional
-        Fractional z-coordinate of the tip apex (default: 0.2).
-    R : float, optional
-        Curvature radius (fractional, default: 0.05).
-    r_tip : float, optional
-        Tip truncation radius (fractional, default: 0.15).
-    aspect_ratio : float, optional
-        Height/radius aspect ratio (default: 2.0).
-    verbose : bool, optional
-        If True, print geometry info (default: True).
-
-    Returns
-    -------
-    mask : np.ndarray (bool)
-        3D boolean mask where True indicates tip voxels.
-    z_tip : float
-        Fractional z-coordinate of the tip apex.
-    z_base : float
-        Fractional z-coordinate of the tip base.
     """
 
-    x = np.linspace(0, 1, nx)
+    x = np.linspace(0, 1, nx)  #Defines three 1D arrays with fractional coordinates
     y = np.linspace(0, 1, ny)
     z = np.linspace(0, 1, nz)
-    cx, cy = 0.5, 0.5
-    tip_z_idx = int(tip_z * (nz - 1))
-    z_tip = z[tip_z_idx]
-    mask = np.zeros((nx, ny, nz), dtype=bool)
+    cx, cy = 0.5, 0.5  #Defines (in fractional coordinates) the location of the center of the tip
+    
+    tip_z_idx = int(round(tip_z * (nz - 1))) #Takes the fractional z-height and transforms it into grid units
+    z_tip = z[tip_z_idx]  #The fractional height of the lowest point on the tip
+    #Make a empty 3D boolean array of False to replace with True for all (x,y,z) locations that make up the tip
+    mask = np.zeros((nx, ny, nz), dtype=bool) 
 
-    theta_asym = np.arctan(aspect_ratio)
-    a = R * np.tan(theta_asym)
+    X, Y = np.meshgrid(x, y, indexing = 'ij') #Prepares a 2D matrix for computing all the radial distances
+    r = np.hypot(X-cx, Y-cy) #Creates a matrix of values defined by their distances from the center 
+    
+    #Defines the mathematical equations necessary to build the tip
+    theta_asym = np.arctan(aspect_ratio) #A bit redundant, as tan(arctan(x))=x
+    a = R * np.tan(theta_asym)  #R is the curvature at the apex, multiplied by the aspect ratio
     b = R * np.tan(theta_asym) ** 2
 
-    z0 = z_tip - b
-    z_base = z0 + np.sqrt(b**2 * (1 + (r_tip**2 / a**2)))
+    z0 = z_tip - b #The center of the hyperboloid
+    z_base = z0 + np.sqrt(b**2 * (1 + (r_tip**2 / a**2))) #The hyperboloid equation evaluated at r_tip
+    #i.e. z_base is the height of the tip at its widest point. I usually set r_tip to be so great that the tip extends
+    #  out of the simulation space, so the tip will not be accidentally truncated
 
-    if verbose:
-        print(f"\n[Hyperbolic AFM Tip]")
-        print(f"  Aspect ratio (tan{chr(952)}) = {aspect_ratio:.3f}, {chr(952)}_asym = {np.degrees(theta_asym):.2f}{chr(176)}")
-        print(f"  a = {a:.6f}, b = {b:.6f}")
-        print(f"  Curvature radius at tip R = {R:.4f}")
-        print(f"  Tip_z = {z_tip:.3f}, Base_z = {z_base:.3f}, r_tip = {r_tip:.3f}")
-
-    for k in range(nz):
+    for k in range(nz): #Loop through all z-heights
         zk = z[k]
-        if zk < z_tip or zk > z_base:
+        if zk < z_tip or zk > z_base: #Only continue if the z-height is within the bounds of where the tip is defined
             continue
         dz = zk - z0
-        if dz**2 < b**2:
-            continue
-        r_max = a * np.sqrt((dz**2 / b**2) - 1)
-        r_max = min(r_max, r_tip)
-        for j in range(ny):
-            for i in range(nx):
-                r = np.sqrt((x[i] - cx)**2 + (y[j] - cy)**2)
-                if r <= r_max:
-                    mask[i, j, k] = True
 
-    if verbose:
-        print(f"  Tip_z = {z_tip:.3f}, Base_z = {z_base:.3f}, Total points: {np.sum(mask)}")
-
+        r_max = a * np.sqrt((dz**2 / b**2) - 1)  #Radius of the tip at height dz
+        r_max = min(r_max, r_tip)  #r_tip is the maximum allowed radius, the point at which the build is truncated
+       #For each z height set the mask to true for all (x,y) values of the distances mesh 
+       #  that are less than the radius of the tip at this height, i.e. within the tip.
+        mask[:, :, k] = r <= r_max 
+                                    
+        
     return mask, z_tip, z_base
 
 
@@ -109,14 +158,14 @@ def compute_residual_vec_unpadded(V, mask, axp, axm, ayp, aym, azp, azm, a0):
 
     Returns
     -------
-    res_mean : float
+    res_rms : float
         RMS residual over interior nodes.
     res_max : float
         Maximum absolute residual over interior nodes.
     res_matrix : np.ndarray
         3D array of |residual| with NaN at boundaries.
     """
-    Nx, Ny, Nz = V.shape
+    #Nx, Ny, Nz = V.shape  
 
     num = (
         axp * V[2:  , 1:-1, 1:-1] +
@@ -135,15 +184,15 @@ def compute_residual_vec_unpadded(V, mask, axp, axm, ayp, aym, azp, azm, a0):
     resid_core_masked[interior_mask] = resid_core[interior_mask]
 
     if np.any(interior_mask):
-        res_mean = np.sqrt(np.mean(resid_core[interior_mask]**2))
-        res_max  = np.sqrt(np.max(np.abs(resid_core[interior_mask])**2))
+        res_rms = np.sqrt(np.mean(resid_core[interior_mask]**2))
+        res_max  = np.max(np.abs(resid_core[interior_mask]))
     else:
-        res_mean, res_max = 0.0, 0.0
+        res_rms, res_max = 0.0, 0.0
 
     res_matrix = np.full_like(V, np.nan, dtype=float)
     res_matrix[1:-1, 1:-1, 1:-1] = np.abs(resid_core_masked)
 
-    return res_mean, res_max, res_matrix
+    return res_rms, res_max, res_matrix
 
 
 def compute_residual_scalars(V, mask, axp, axm, ayp, aym, azp, azm, a0):
@@ -180,9 +229,13 @@ def compute_residual_scalars(V, mask, axp, axm, ayp, aym, azp, azm, a0):
     free = ~mask[1:-1, 1:-1, 1:-1]
     if not free.any():
         return 0.0, 0.0
-    res_L2  = np.sqrt(np.mean(resid[free]**2))
-    res_max = np.sqrt(np.max(np.abs(resid[free])**2))
+    res_L2  = np.sqrt(np.mean(resid[free]**2))  
+    #The L2 norm provides greater weighting to the cells that have a larger residual
+    #res_max = np.sqrt(np.max(np.abs(resid[free])**2))
+    res_max = np.max(np.abs(resid[free]))
     return res_L2, res_max
+
+
 
 
 def log_residual_csv(iteration, res_avg, res_max, csv_file=None, output_dir="."):
@@ -197,7 +250,7 @@ def log_residual_csv(iteration, res_avg, res_max, csv_file=None, output_dir=".")
         writer.writerow([iteration, res_avg, res_max])
 
 
-def plot_convergence(csv_file=None, output_dir="."):
+def plot_convergence(csv_file=None, output_dir=".", title=None):
     """
     Plot convergence history from residual CSV.
     If csv_file is None, use RESIDUAL_CSV.
@@ -230,7 +283,7 @@ def plot_convergence(csv_file=None, output_dir="."):
         print("Warning: residual file is empty. Skipping plot.")
         return
 
-    plt.figure(figsize=(7, 5))
+    fig = plt.figure(figsize=(7, 5))
     plt.semilogy(df["iteration"], df["residual_avg"],
                  marker="o", markersize=2, linestyle="None", color="tab:blue",
                  label="Average (L2) residual")
@@ -238,15 +291,16 @@ def plot_convergence(csv_file=None, output_dir="."):
                  marker="x", markersize=2, linestyle="None", color="tab:red",
                  label="Max residual")
     plt.xlabel("Iteration")
-    plt.ylabel("Residual")
-    plt.title("Convergence History (Average vs Max)")
+    plt.ylabel("Residual (V)")
+    plt.title("Convergence History (RMS vs Max)")
     plt.grid(True, which="both", linestyle="--", alpha=0.5)
     plt.legend()
     plt.tight_layout()
     plt.show()
+    plt.close(fig)
 
 
-def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
+def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8,
                  max_iter=50, tol=1e-6, verbose=True, eps_r=None, eps=True,
                  mg_max_runtime=None, output_dir="."):
     """Multigrid solver for the 3D Poisson equation with dielectric variation.
@@ -265,10 +319,6 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
         True at Dirichlet boundary nodes.
     damping : float, optional
         SOR damping factor / omega (default: 0.8).
-    nu1 : int, optional
-        Pre-smoothing steps (unused in current code, default: 2).
-    nu2 : int, optional
-        Post-smoothing steps (unused, default: 2).
     max_iter : int, optional
         Maximum solver iterations (default: 50).
     tol : float, optional
@@ -302,119 +352,124 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
 
     print(f"   Starting 3D MG solver: {nx}x{ny}x{nz} grid")
 
-    def solve_varying_dielectric_3d_zero_rhs_old(V, eps_cell, omega=1.5,
-                                                  tol=1e-10, max_iter=20000,
-                                                  mask=None, verbose=False,
-                                                  output_dir="."):
-        """(Legacy) SOR solver for div(eps * grad(phi)) = 0.
+    # def solve_varying_dielectric_3d_zero_rhs_old(V, eps_cell, omega=1.5,
+    #                                               tol=1e-10, max_iter=20000,
+    #                                               mask=None, verbose=False,
+    #                                               output_dir="."):
+    #     """(Legacy) SOR solver for div(eps * grad(phi)) = 0.
 
-        Uses per-iteration residual logging and safety checks. Replaced by
-        the optimised version below but retained for reference.
+    #     Uses per-iteration residual logging and safety checks. Replaced by
+    #     the optimised version below but retained for reference.
 
-        Parameters
-        ----------
-        V : np.ndarray
-            Potential array (will be modified in-place).
-        eps_cell : np.ndarray
-            Dielectric on cells (Nx-1 x Ny-1 x Nz-1).
-        omega : float, optional
-            SOR over-relaxation factor (default: 1.5).
-        tol : float, optional
-            Convergence tolerance (default: 1e-10).
-        max_iter : int, optional
-            Maximum iterations (default: 20000).
-        mask : np.ndarray (bool) or None, optional
-            Dirichlet mask (default: None = all free).
-        verbose : bool, optional
-            If True, print progress (default: False).
-        output_dir : str, optional
-            Log directory (default: ".").
+    #     Parameters
+    #     ----------
+    #     V : np.ndarray
+    #         Potential array (will be modified in-place).
+    #     eps_cell : np.ndarray
+    #         Dielectric on cells (Nx-1 x Ny-1 x Nz-1).
+    #     omega : float, optional
+    #         SOR over-relaxation factor (default: 1.5).
+    #     tol : float, optional
+    #         Convergence tolerance (default: 1e-10).
+    #     max_iter : int, optional
+    #         Maximum iterations (default: 20000).
+    #     mask : np.ndarray (bool) or None, optional
+    #         Dirichlet mask (default: None = all free).
+    #     verbose : bool, optional
+    #         If True, print progress (default: False).
+    #     output_dir : str, optional
+    #         Log directory (default: ".").
 
-        Returns
-        -------
-        V : np.ndarray
-            Converged potential.
-        res_matrix : np.ndarray
-            Final residual per node.
-        """
-        Nx, Ny, Nz = V.shape
-        if eps_cell.shape != (Nx-1, Ny-1, Nz-1):
-            raise ValueError("eps_cell must have shape (Nx-1,Ny-1,Nz-1).")
+    #     Returns
+    #     -------
+    #     V : np.ndarray
+    #         Converged potential.
+    #     res_matrix : np.ndarray
+    #         Final residual per node.
+    #     """
+    #     Nx, Ny, Nz = V.shape
+    #     if eps_cell.shape != (Nx-1, Ny-1, Nz-1):
+    #         raise ValueError("eps_cell must have shape (Nx-1,Ny-1,Nz-1).")
 
-        if mask is None:
-            mask = np.zeros_like(V, dtype=bool)
+    #     if mask is None:
+    #         mask = np.zeros_like(V, dtype=bool)
 
-        Vfix = V.copy()
+    #     Vfix = V.copy()
 
-        ec = eps_cell
-        axp = 0.25*(ec[1:, :-1, :-1] + ec[1:, 1:, :-1] + ec[1:, :-1, 1:] + ec[1:, 1:, 1:])
-        axm = 0.25*(ec[:-1, :-1, :-1] + ec[:-1, 1:, :-1] + ec[:-1, :-1, 1:] + ec[:-1, 1:, 1:])
-        ayp = 0.25*(ec[:-1, 1:, :-1] + ec[1:, 1:, :-1] + ec[:-1, 1:, 1:] + ec[1:, 1:, 1:])
-        aym = 0.25*(ec[:-1, :-1, :-1] + ec[1:, :-1, :-1] + ec[:-1, :-1, 1:] + ec[1:, :-1, 1:])
-        azp = 0.25*(ec[:-1, :-1, 1:] + ec[1:, :-1, 1:] + ec[:-1, 1:, 1:] + ec[1:, 1:, 1:])
-        azm = 0.25*(ec[:-1, :-1, :-1] + ec[1:, :-1, :-1] + ec[:-1, 1:, :-1] + ec[1:, 1:, :-1])
+    #     ec = eps_cell
+    #     axp = 0.25*(ec[1:, :-1, :-1] + ec[1:, 1:, :-1] + ec[1:, :-1, 1:] + ec[1:, 1:, 1:])
+    #     axm = 0.25*(ec[:-1, :-1, :-1] + ec[:-1, 1:, :-1] + ec[:-1, :-1, 1:] + ec[:-1, 1:, 1:])
+    #     ayp = 0.25*(ec[:-1, 1:, :-1] + ec[1:, 1:, :-1] + ec[:-1, 1:, 1:] + ec[1:, 1:, 1:])
+    #     aym = 0.25*(ec[:-1, :-1, :-1] + ec[1:, :-1, :-1] + ec[:-1, :-1, 1:] + ec[1:, :-1, 1:])
+    #     azp = 0.25*(ec[:-1, :-1, 1:] + ec[1:, :-1, 1:] + ec[:-1, 1:, 1:] + ec[1:, 1:, 1:])
+    #     azm = 0.25*(ec[:-1, :-1, :-1] + ec[1:, :-1, :-1] + ec[:-1, 1:, :-1] + ec[1:, 1:, :-1])
 
-        def pad3(arr):
-            out = np.zeros((Nx,Ny,Nz))
-            out[1:-1,1:-1,1:-1] = arr
-            return out
+    #     def pad3(arr):
+    #         out = np.zeros((Nx,Ny,Nz))
+    #         out[1:-1,1:-1,1:-1] = arr
+    #         return out
 
-        axp, axm, ayp, aym, azp, azm = map(pad3, (axp, axm, ayp, aym, azp, azm))
-        a0 = axp + axm + ayp + aym + azp + azm
+    #     axp, axm, ayp, aym, azp, azm = map(pad3, (axp, axm, ayp, aym, azp, azm))
+    #     a0 = axp + axm + ayp + aym + azp + azm
 
-        for it in range(1, max_iter+1):
-            if it == 1:
-                level_start_time = time.time()
+    #     for it in range(1, max_iter+1):
+    #         if it == 1:
+    #             level_start_time = time.time()
 
-            num = (
-                axp[1:-1,1:-1,1:-1] * V[2:  ,1:-1,1:-1] +
-                axm[1:-1,1:-1,1:-1] * V[ :-2,1:-1,1:-1] +
-                ayp[1:-1,1:-1,1:-1] * V[1:-1,2:  ,1:-1] +
-                aym[1:-1,1:-1,1:-1] * V[1:-1, :-2,1:-1] +
-                azp[1:-1,1:-1,1:-1] * V[1:-1,1:-1,2:  ] +
-                azm[1:-1,1:-1,1:-1] * V[1:-1,1:-1, :-2]
-            )
+    #         num = (
+    #             axp[1:-1,1:-1,1:-1] * V[2:  ,1:-1,1:-1] +
+    #             axm[1:-1,1:-1,1:-1] * V[ :-2,1:-1,1:-1] +
+    #             ayp[1:-1,1:-1,1:-1] * V[1:-1,2:  ,1:-1] +
+    #             aym[1:-1,1:-1,1:-1] * V[1:-1, :-2,1:-1] +
+    #             azp[1:-1,1:-1,1:-1] * V[1:-1,1:-1,2:  ] +
+    #             azm[1:-1,1:-1,1:-1] * V[1:-1,1:-1, :-2]
+    #         )
 
-            denom = a0[1:-1,1:-1,1:-1]
+    #         denom = a0[1:-1,1:-1,1:-1]
 
-            Vnew_core = num / denom
-            R = Vnew_core - V[1:-1,1:-1,1:-1]
-            V[1:-1,1:-1,1:-1] += omega*R
-            V = neumann(V)
-            V[mask] = Vfix[mask]
+    #         Vnew_core = num / denom
+    #         R = Vnew_core - V[1:-1,1:-1,1:-1]
+    #         V[1:-1,1:-1,1:-1] += omega*R
+    #         V = neumann(V)
+    #         V[mask] = Vfix[mask]
 
-            if (it % 10 == 0 or it <= 5):
-                res, res_max, res_matrix = compute_residual_vec_unpadded(V, mask, axp[1:-1,1:-1,1:-1], axm[1:-1,1:-1,1:-1], ayp[1:-1,1:-1,1:-1], aym[1:-1,1:-1,1:-1], azp[1:-1,1:-1,1:-1], azm[1:-1,1:-1,1:-1], a0[1:-1,1:-1,1:-1])
-                print(f"iter {it:6d}: res_avg={res:.5e}, res_max={res_max:.5e}")
-                log_residual_csv(it, res, res_max, output_dir=output_dir)
+    #         if (it % 10 == 0 or it <= 5):
+    #             res, res_max, res_matrix = compute_residual_vec_unpadded(V, mask, axp[1:-1,1:-1,1:-1], axm[1:-1,1:-1,1:-1], ayp[1:-1,1:-1,1:-1], aym[1:-1,1:-1,1:-1], azp[1:-1,1:-1,1:-1], azm[1:-1,1:-1,1:-1], a0[1:-1,1:-1,1:-1])
+    #             print(f"iter {it:6d}: res_avg={res:.5e}, res_max={res_max:.5e}")
+    #             log_residual_csv(it, res, res_max, output_dir=output_dir)
 
-            elapsed = time.time() - level_start_time
-            MG_TIME["elapsed"] = elapsed
+    #         elapsed = time.time() - level_start_time
+    #         MG_TIME["elapsed"] = elapsed
 
-            if res < tol:
-                if verbose:
-                    print(f"Converged in {it} iterations; residual={res:.5e}")
-                plot_convergence(output_dir=output_dir)
-                return V, res_matrix
+    #         if res < tol:
+    #             if verbose:
+    #                 print(f"Converged in {it} iterations; residual={res:.5e}")
+    #             plot_convergence(output_dir=output_dir)
+    #             return V, res_matrix
 
-            if (mg_max_runtime is not None) and (elapsed > mg_max_runtime):
-                print(f"MG aborted early: exceeded max runtime ({mg_max_runtime} s). "
-                      f"Completed {it} iterations.")
-                plot_convergence(output_dir=output_dir)
-                return V, res_matrix
+    #         if (mg_max_runtime is not None) and (elapsed > mg_max_runtime):
+    #             print(f"MG aborted early: exceeded max runtime ({mg_max_runtime} s). "
+    #                   f"Completed {it} iterations.")
+    #             plot_convergence(output_dir=output_dir)
+    #             return V, res_matrix
 
-        print(f"NOT converged after {max_iter} iterations; last residual={res:.5e}")
-        plot_convergence(output_dir=output_dir)
-        return V, res_matrix
+    #     print(f"NOT converged after {max_iter} iterations; last residual={res:.5e}")
+    #     plot_convergence(output_dir=output_dir)
+    #     return V, res_matrix
 
-    print(f"   Starting 3D MG solver: {nx}x{ny}x{nz} grid")
+    # print(f"   Starting 3D MG solver: {nx}x{ny}x{nz} grid")
 
-    def solve_varying_dielectric_3d_zero_rhs(V, eps_cell, omega=1.5,
-                                              tol=1e-10, max_iter=20000,
+    def solve_varying_dielectric_3d_zero_rhs(V, eps_cell, max_iter, 
+                                             omega=1.5, tol=1e-10, 
                                               mask=None, verbose=False,
                                               output_dir="."):
         """Optimised SOR solver for div(eps * grad(phi)) = 0."""
-        Nx, Ny, Nz = V.shape
+        #NOTE: It appears to be an incorrect comment above, this is not an SOR solver as I understand it
+        
+        conv = False  #boolean variable set now, returned in filename, boolean converted to string in batch_main()
+        
+        Nx, Ny, Nz = V.shape #The current grid size for the iterative process about to be performed
+        
         if eps_cell.shape != (Nx-1, Ny-1, Nz-1):
             raise ValueError("eps_cell must have shape (Nx-1,Ny-1,Nz-1).")
 
@@ -434,13 +489,18 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
         a0 = axp + axm + ayp + aym + azp + azm
 
         # ---------- Ensure residual CSV exists with header ----------
-        csv_path = os.path.join(output_dir, RESIDUAL_CSV)
-        if not os.path.isfile(csv_path) or os.path.getsize(csv_path) == 0:
-            with open(csv_path, 'w', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(["iteration", "residual_avg", "residual_max"])
+        # csv_path = os.path.join(output_dir, RESIDUAL_CSV)
+        # if not os.path.isfile(csv_path) or os.path.getsize(csv_path) == 0:
+        #     with open(csv_path, 'w', newline='') as f:
+        #         writer = csv.writer(f)
+        #         writer.writerow(["iteration", "residual_avg", "residual_max"])
         # -----------------------------------------------------------
 
+        csv_path = os.path.join(output_dir, RESIDUAL_CSV)
+        with open(csv_path, 'w', newline='') as f:   # 'w' truncates: one solve = one history
+            csv.writer(f).writerow(["iteration", "residual_avg", "residual_max"])
+
+    
         Ni, Nj, Nk = Nx-2, Ny-2, Nz-2
 
         num       = np.empty((Ni, Nj, Nk), dtype=np.float32)
@@ -456,6 +516,7 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
         V_zm = V[1:-1, 1:-1,  :-2]
 
         level_start_time = time.time()
+        
 
         for it in range(1, max_iter + 1):
             np.multiply(axp, V_xp, out=num)
@@ -475,39 +536,50 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8, nu1=2, nu2=2,
             elapsed = time.time() - level_start_time
             MG_TIME["elapsed"] = elapsed
 
-            if it % 10 == 0 or it <= 5:
-                res, res_max, res_matrix = compute_residual_vec_unpadded(
-                    V, mask, axp, axm, ayp, aym, azp, azm, a0
-                )
+            if it % 10 == 0 or it <= 5 or it == max_iter:
+                resL2, res_max = compute_residual_scalars(
+                    V, mask, axp, axm, ayp, aym, azp, azm, a0)
+                
                 if verbose:
-                    print(f"iter {it:6d}: res_avg={res:.5e}, res_max={res_max:.5e}")
-                log_residual_csv(it, res, res_max, output_dir=output_dir)
+                    print(f"iter {it:6d}: res_avg={resL2:.5e}, res_max={res_max:.5e}")
+                log_residual_csv(it, resL2, res_max, output_dir=output_dir)
 
-                if res < tol:
+                if resL2 < tol/(np.sqrt(Nx*Ny*Nz)):
                     if verbose:
-                        print(f"Converged in {it} iterations; residual={res:.5e}")
-                    plot_convergence(output_dir=output_dir)
-                    return V, res_matrix
+                        print(f"Converged in {it} iterations; residual={resL2:.5e}")
+                    plot_convergence(output_dir=output_dir, title=f"{Nx}x{Ny}x{Nz} grid")
+                    conv = True
+                    print(it)
+                    #And for plotting residuals get the matrix out
+                    __, __, res_matrix = compute_residual_vec_unpadded(V, mask, axp, axm, ayp, aym, azp, azm, a0)
+                    return V, it, resL2, res_max, res_matrix, conv 
+
 
             if mg_max_runtime is not None and elapsed > mg_max_runtime:
                 print(f"MG aborted early: exceeded max runtime ({mg_max_runtime} s). "
                       f"Completed {it} iterations.")
-                plot_convergence(output_dir=output_dir)
+                plot_convergence(output_dir=output_dir, title=f"{Nx}x{Ny}x{Nz} grid")
+                res_L2, res_max, res_matrix = compute_residual_vec_unpadded(V, mask, axp, axm, ayp, aym, azp, azm, a0)
                 full_res = np.full_like(V, np.nan, dtype=np.float32)
                 full_res[1:-1, 1:-1, 1:-1] = np.abs(R_arr)
-                return V, full_res
-
+                return V, it, resL2, res_max, res_matrix, conv
+            
+                if it == max_iter:
+                    res_L2, res_max, res_matrix = compute_residual_vec_unpadded(V, mask, axp, axm, ayp, aym, azp, azm, a0)
+                    
+                    
         # If we exit the loop without converging or hitting runtime limit
-        print(f"NOT converged after {max_iter} iterations; last residual={res:.5e}")
-        plot_convergence(output_dir=output_dir)
+        print(f"NOT converged after {max_iter} iterations; last residual={resL2:.5e}")
+        plot_convergence(output_dir=output_dir, title=f"{Nx}x{Ny}x{Nz} grid")
         full_res = np.full_like(V, np.nan, dtype=np.float32)
         full_res[1:-1, 1:-1, 1:-1] = np.abs(R_arr)
-        return V, full_res
+        return V, it, resL2, res_max, res_matrix, conv
 
     # ---- End of inner solver definition ----
 
-    if eps:
-        return solve_varying_dielectric_3d_zero_rhs(
-            phi, eps_r, damping, tol, max_iter, boundary_mask, verbose,
+    if not eps:
+        eps_r = np.ones((nx - 1, ny - 1, nz - 1), dtype=np.float32)
+    return solve_varying_dielectric_3d_zero_rhs(
+            phi, eps_r, max_iter, damping, tol, boundary_mask, verbose,
             output_dir=output_dir
         )

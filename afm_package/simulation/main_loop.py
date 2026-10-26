@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-import matplotlib.colors as mcolors
+#import matplotlib.colors as mcolors
 import time
 import os
 import csv
@@ -12,7 +12,7 @@ from scipy.ndimage import zoom
 
 from .solver import build_downward_pointing_tip, mg_3d_masked, MG_TIME
 from .materials import generate_eps_cell
-from .io_utils import make_gate_mask, get_sorted_config_files, save_for_qtcad
+from .io_utils import make_gate_mask, get_sorted_config_files, save_for_npy
 from .plotting import plot_phi_plane, plot_residual_plane
 from .zoom import run_zoom_simulation
 
@@ -77,11 +77,15 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
     if verbose:
         print("Starting multiresolution AFM simulation...")
 
-    nx_target, ny_target, nz_target = nx, ny, nz
-    nx, ny, nz = 8, 8, 8
+    nx_target, ny_target, nz_target = nx, ny, nz #Immediately define the target size user desires
+    #Defines the initial starting grid size, later doubled and the zoom function is used to scale the grid up to target
+    nx, ny, nz = 8, 8, 8 
+    total_iter = 0 #Counter for number of iterations performed, each level increments it by "it_performed"
+
     phi = np.full((nx, ny, nz), 0.001, dtype=np.float32)
-    total_iter = 0
+
     level = 1
+    did_it_converge = "yes"  #Sets this string to appear in the file name indicating convergence
 
     while True:
         if verbose:
@@ -120,24 +124,30 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
         else:
             eps_cell = eps_r.copy()
 
-        remaining_iter = max_iter - total_iter
-        if remaining_iter <= 0:
-            if verbose:
-                print(f"[Level {level}] Reached max_iter={max_iter}, stopping.")
-            break
+        # remaining_iter = max_iter - total_iter
+        # if remaining_iter <= 0:
+        #     if verbose:
+        #         print(f"[Level {level}] Reached max_iter={max_iter}, stopping.")
+        #     break
 
-        if verbose:
-            print(f"[Level {level}] Running solver (remaining_iter={remaining_iter})...")
+        # if verbose:
+        #     print(f"[Level {level}] Running solver (remaining_iter={remaining_iter})...")
 
-        phi_solution, res_m = mg_3d_masked(Vtip, phi.copy(), boundary_mask,
-                                    damping=damping, nu1=nu1, nu2=nu2,
-                                    max_iter=remaining_iter, tol=tol,
+        phi_solution, it_performed, resL2, res_max, res_matrix, conv = mg_3d_masked(Vtip, phi.copy(), boundary_mask,
+                                    damping=damping,
+                                    max_iter=max_iter, tol=tol,
                                     verbose=verbose, eps_r=eps_cell, eps=eps,
                                     mg_max_runtime=mg_max_runtime,
                                     output_dir=output_dir)
 
-        total_iter += remaining_iter // 2
+        total_iter += it_performed
 
+        
+        if conv == False:  #If even a single level fails to converge:
+            did_it_converge = f"no_on_{level}" #returns a string with the level that failed, overwrites "yes"
+            #This will only share the last level to fail to converge, but if only the second level 
+            #  fails to converge then this catches that
+            
         logfile = os.path.join(output_dir, "mg_timing_log.csv")
         os.makedirs(output_dir, exist_ok=True)
         file_exists = os.path.isfile(logfile)
@@ -153,15 +163,25 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
                 print(f"[Level {level}] Target grid size reached ({nx}x{ny}x{nz}). Simulation complete.")
             break
 
-        if total_iter >= max_iter:
+        if it_performed == max_iter:  #If the level performed the maximum number of iterations allowed
             if verbose:
                 print(f"[Level {level}] Max iterations {max_iter} reached before reaching target size.")
-            break
-
+            #break
+        
+        #The grid size is doubled and the simulation repeated. This is done until nx, ny, and nz reach the target size
         nx *= 2
         ny *= 2
         nz *= 2
 
+        #Potential fix for any possbile grid size scaling (Other things would break)
+        # nx_old, ny_old, nz_old = nx, ny, nz
+        # nx, ny, nz = min(2*nx, nx_target), min(2*ny, ny_target), min(2*nz, nz_target)
+        # phi = zoom(phi_solution, (nx/nx_old, ny/ny_old, nz/nz_old), order=1)
+        # del phi_solution
+
+        #This is a built in scipy function, built arbitrarily to only accept powers of 2
+        
+        
         phi = zoom(phi_solution, 2.0, order=1)
         del phi_solution
 
@@ -186,15 +206,24 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
         print(f" tip field mean/std:     {np.mean(tip_field):.4f} +/- {np.std(tip_field):.4f}")
 
     results = {
-        'phi': phi_solution, 'Ex': Ex, 'Ey': Ey, 'Ez': Ez,
-        'residual': res_m,
-        'tip_mask': tip_mask, 'boundary_mask': boundary_mask,
-        'tip_potential': tip_potential, 'tip_field': tip_field,
-        'surface_potential': surface_potential, 'surface_field': surface_field,
+        'phi': phi_solution, 
+        'Ex': Ex, 'Ey': Ey, 'Ez': Ez,
+        'tip_mask': tip_mask, 
+        'boundary_mask': boundary_mask,
+        'tip_potential': tip_potential, 
+        'tip_field': tip_field,
+        'surface_potential': surface_potential, 
+        'surface_field': surface_field,
+        'total_iter': total_iter, 
+        'converged': did_it_converge,
+        'resL2': resL2,
+        'res_max': res_max,
+        'res_matrix': res_matrix,
         'parameters': {'nx': nx, 'ny': ny, 'nz': nz,
                        'tip_pos': tip_pos, 'base_pos': base_pos,
-                       'total_iter': total_iter, 'levels': level}
+                       'levels': level}
     }
+    
     return results
 
 
@@ -319,10 +348,11 @@ def compute_block_positions(start_center, end_center, spacing):
     dist = high - low
 
     max_dist = np.linalg.norm(dist)
-    nsteps = int(max_dist / spacing) + 1
+    nsteps = int(round(max_dist / spacing)) + 1  #Need to round this so int() doesn't floor it
 
     tvals = np.linspace(0, 1, nsteps)
-    return [tuple(low + t * dist) for t in tvals]
+    #return [tuple(low + t * dist) for t in tvals]
+    return [tuple((start + t*(end - start))) for t in tvals]
 
 
 def apply_block_motion(cfg, block_motion_list, center):
@@ -594,7 +624,7 @@ def _parse_fix_entry(v):
     return float(v)
 
 
-def _apply_edge_fix(edge_value, lo_fix, hi_fix):
+def _apply_edge_fix_old(edge_value, lo_fix, hi_fix):
     """Constrain an edge value within optional lo/hi fix bounds, clamped [0,1]."""
     lo = edge_value
     hi = edge_value
@@ -607,6 +637,18 @@ def _apply_edge_fix(edge_value, lo_fix, hi_fix):
     edge = max(0.0, min(1.0, lo))
     edge = max(0.0, min(1.0, hi))
     return edge
+
+
+def _apply_edge_fix(edge_value, lo_fix, hi_fix):
+    """Constrain an edge value within optional lo/hi fix bounds, clamped [0,1]."""
+    edge = edge_value
+
+    if lo_fix is not None:
+        edge = max(edge, lo_fix)
+    if hi_fix is not None:
+        edge = min(edge, hi_fix)
+
+    return max(0.0, min(1.0, edge))
 
 
 def preview_before_run(cfg):
@@ -718,7 +760,7 @@ def preview_before_run(cfg):
             ax.set_title(ttl)
 
             if show_gates:
-                ax.imshow(gm.T, cmap="gray_r", alpha=1.0)
+                ax.imshow(gm.T, cmap="gray_r", alpha=1.0, origin="lower")
 
         if show_colorbars:
             draw_dual_colorbars(fig)
@@ -885,7 +927,7 @@ def batch_main(CONFIG_BASE_NAME="afm_config"):
                 print(f"  {sigma_blocks_file} not found - zoom Joule heating disabled.")
 
             mg_max_runtime = cfg.get("mg_max_runtime", None)
-            blocks = cfg["blocks"]
+            #blocks = cfg["blocks"]
 
             mov = cfg.get("movement", {})
             start_center = tuple(mov.get("start", [0.5, 0.5, 0.5]))
@@ -898,8 +940,13 @@ def batch_main(CONFIG_BASE_NAME="afm_config"):
             phi_results = []
             time_log = []
 
-            stationary_upto = cfg.get("fixed_blocks", [2])[0]
-            mobile_block_indices = list(range(stationary_upto, len(cfg["blocks"])))
+
+            #Commenting out these two lines prevents the first two dielectric blocks one defines from 
+            #  being "fixed" (refer to how the movement code works - moving dielectric blocks relative
+            #  to the tip) by default.
+            #stationary_upto = cfg.get("fixed_blocks", [2])[0]
+            #mobile_block_indices = list(range(stationary_upto, len(cfg["blocks"])))
+            mobile_block_indices = list(range(len(cfg["blocks"])))
             mobile_vgate_indices = list(range(len(cfg.get("Vgate", []))))
             center0 = centers[0]
 
@@ -936,7 +983,7 @@ def batch_main(CONFIG_BASE_NAME="afm_config"):
                         r_tip=cfg["r_tip"],
                         damping=1,
                         nu1=2, nu2=2,
-                        max_iter=100000,
+                        max_iter=cfg["max_iter"],
                         tol=cfg.get("res_tol_main", 5e-5),
                         aspect_ratio=cfg["aspect_ratio"],
                         verbose=False,
@@ -946,9 +993,12 @@ def batch_main(CONFIG_BASE_NAME="afm_config"):
                         Vgate=cfg.get("Vgate", []),
                         output_dir=output_dir
                     )
-
+                    
+                    #Now pulling out information we want to save from the results dictionary returned by run_afm_simulation()
                     phi = results["phi"]
                     nx, ny, nz = phi.shape
+                    converged = results["converged"]
+                    total_iter = results["total_iter"]
                     ix = int(x_frac * (nx - 1))
                     iy = int(y_frac * (ny - 1))
                     iz = int(z_frac * (nz - 1))
@@ -977,22 +1027,28 @@ def batch_main(CONFIG_BASE_NAME="afm_config"):
                         file_name_from_path = "unknown_config"
                     
                     #Reads from the cfg dictionary loaded from the config file,
-                    #  and the three variables defined above,
+                    #  and the three variables defined above, tipradius, tipheightfrombottom, and file_name_from_path
                     #  and saves the outputs of each simulation with the config and variables from that rund
                     #Because of how some postprocessing plots are generated the config_id number needs to come first,
                     #  and the voltage needs to come last.
-                    npy_name = f"ID_{config_idx}_{file_name_from_path}_Lx_{cfg.get("Lx_nm")}"\
-                        f"nm_Ly_{cfg.get("Ly_nm")}nm_Lz_{cfg.get("Lz_nm")}"\
-                        f"nm_TipRadius_{tipradius:.2f}nm_TipHeightfromBottom_"\
-                        f"{tipheightfrombottom:.2f}nm_gridresolution_Nx_"\
-                        f"{cfg.get("grid_resolution").get("nx")}_Ny_"\
-                        f"{cfg.get("grid_resolution").get("ny")}_Nz_"\
-                        f"{cfg.get("grid_resolution").get("nz")}_Bias_{V:.2f}V.npy"
 
-                        
-                    save_for_qtcad(results, npy_name, output_dir=output_dir)
+                    npy_name = f"ID_{config_idx}"\
+                        f"_{file_name_from_path}"\
+                        f"_conv_{converged}"\
+                        f"_LxLyLz_{cfg.get("Lx_nm")}-{cfg.get("Ly_nm")}-{cfg.get("Lz_nm")}nm"\
+                        f"_TipRadius_{tipradius:.2f}nm"\
+                        f"_TipHeightfromBottom_{tipheightfrombottom:.2f}nm"\
+                        f"_GridResolution_NxNyNz_"\
+                            f"{cfg.get("grid_resolution").get("nx")}-"\
+                            f"{cfg.get("grid_resolution").get("ny")}-"\
+                            f"{cfg.get("grid_resolution").get("nz")}"\
+                        f"_CxCyCz{cx:.2f}-{cy:.2f}-{cz:.2f}_"\
+                        f"Total_iters_{total_iter}"\
+                        f"_Bias_{V:.2f}V.npy"\
+                    
+                    save_for_npy(results, npy_name, output_dir=output_dir)
 
-                    residual = results["residual"]
+                    residual = results["res_matrix"]
 
                     fig = plot_phi_plane(phi, results['boundary_mask'], plane=(True, True, z_frac))
                     ax = fig.axes[0] if fig.axes else None
@@ -1026,7 +1082,7 @@ def batch_main(CONFIG_BASE_NAME="afm_config"):
 
                     run_zoom_simulation(cfg, results, V, config_idx, time_log, output_dir=output_dir)
 
-                    del results
+                    del results, phi, residual, fig
                     gc.collect()
                     plt.close('all')
 
