@@ -7,7 +7,7 @@ import re
 RESIDUAL_CSV = "residual_history.csv"
 
 
-def save_for_qtcad(results, filename="afm_potential.npy", output_dir="."):
+def save_for_npy(results, filename="afm_potential.npy", output_dir="."):
     """Save the potential array to a .npy file for QTCAD compatibility.
 
     Parameters
