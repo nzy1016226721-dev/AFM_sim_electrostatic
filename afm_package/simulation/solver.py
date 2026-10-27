@@ -175,8 +175,8 @@ def compute_residual_vec_unpadded(V, mask, axp, axm, ayp, aym, azp, azm, a0):
         azp * V[1:-1, 1:-1, 2:  ] +
         azm * V[1:-1, 1:-1,  :-2]
     )
-    center = a0 * V[1:-1, 1:-1, 1:-1]
-    resid_core = num - center
+    #center = a0 * V[1:-1, 1:-1, 1:-1]
+    resid_core = (num/a0) - V[1:-1, 1:-1, 1:-1]
 
     interior_mask = ~mask[1:-1, 1:-1, 1:-1]
     resid_core_masked = np.zeros_like(resid_core)
@@ -224,7 +224,7 @@ def compute_residual_scalars(V, mask, axp, axm, ayp, aym, azp, azm, a0):
         azp * V[1:-1, 1:-1, 2:  ] +
         azm * V[1:-1, 1:-1,  :-2]
     )
-    resid = num - a0 * V[1:-1, 1:-1, 1:-1]
+    resid = (num/a0) - V[1:-1, 1:-1, 1:-1]
 
     free = ~mask[1:-1, 1:-1, 1:-1]
     if not free.any():
@@ -520,16 +520,18 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8,
 
         for it in range(1, max_iter + 1):
             np.multiply(axp, V_xp, out=num)
-            np.add(num, axm * V_xm, out=num)
-            np.add(num, ayp * V_yp, out=num)
-            np.add(num, aym * V_ym, out=num)
-            np.add(num, azp * V_zp, out=num)
-            np.add(num, azm * V_zm, out=num)
+            for a, Vn in ((axm, V_xm), (ayp, V_yp), (aym, V_ym), (azp, V_zp), (azm, V_zm)):
+                np.multiply(a, Vn, out=R_arr)
+                np.add(num, R_arr, out=num)
 
-            np.divide(num, a0, out=Vnew_core)
-            np.subtract(Vnew_core, V_int, out=R_arr)
-            np.add(V_int, omega * R_arr, out=V_int)
-
+            np.divide(num, a0, out=num)
+            np.subtract(num, V_int, out=R_arr) 
+            
+            #Now performs the Jacobi smoothing, omega*residual is the correction amount to V_int
+            #R_arr is num/a0 - V, where num is the sum of all ax*Vx, ay*Vy, etc. 
+            np.multiply(omega, R_arr, out=num) #re-using scratch again
+            np.add(num, V_int, out=V_int)
+            
             neumann(V)
             V[mask] = Vfix[mask]
 
