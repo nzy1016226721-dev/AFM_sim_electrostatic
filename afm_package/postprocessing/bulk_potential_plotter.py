@@ -128,10 +128,7 @@ def regex_pattern_for_npys(filename):
     Bias = m.groupdict()["Bias"]
     return(Lx, Ly, Lz, Nx, Ny, Nz, Bias)
 
-    pattern = re.compile(
-        r".*?Lx_(?P<Lx>[\d.]+)nm_Ly_(?P<Ly>[\d.]+)nm_Lz_(?P<Lz>[\d.]+)nm_.*?"
-        r"Nx_(?P<Nx>\d+)_Ny_(?P<Ny>\d+)_Nz_(?P<Nz>\d+)_.*?"
-        r"Bias_(?P<Bias>[\d.]+)V")
+
 def line_plotter(potentials_to_plot, axis_choice, positions, save_plot):
     """
     Plots lines of potential given the path to the .npy file, and given 
