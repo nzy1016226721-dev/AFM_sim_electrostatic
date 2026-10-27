@@ -516,7 +516,7 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8,
         V_zm = V[1:-1, 1:-1,  :-2]
 
         level_start_time = time.time()
-        
+
 
         for it in range(1, max_iter + 1):
             np.multiply(axp, V_xp, out=num)
@@ -536,22 +536,24 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8,
             elapsed = time.time() - level_start_time
             MG_TIME["elapsed"] = elapsed
 
-            if it % 10 == 0 or it <= 5 or it == max_iter:
+
+            if it % 10 == 0 or it <= 5:
                 resL2, res_max = compute_residual_scalars(
                     V, mask, axp, axm, ayp, aym, azp, azm, a0)
-                
+  
                 if verbose:
                     print(f"iter {it:6d}: res_avg={resL2:.5e}, res_max={res_max:.5e}")
                 log_residual_csv(it, resL2, res_max, output_dir=output_dir)
 
-                if resL2 < tol/(np.sqrt(Nx*Ny*Nz)):
+                if resL2 < tol:
                     if verbose:
                         print(f"Converged in {it} iterations; residual={resL2:.5e}")
                     plot_convergence(output_dir=output_dir, title=f"{Nx}x{Ny}x{Nz} grid")
                     conv = True
-                    print(it)
+                    print(f'the number of iterations is {it}')
+                   
                     #And for plotting residuals get the matrix out
-                    __, __, res_matrix = compute_residual_vec_unpadded(V, mask, axp, axm, ayp, aym, azp, azm, a0)
+                    resL2, res_max, res_matrix = compute_residual_vec_unpadded(V, mask, axp, axm, ayp, aym, azp, azm, a0)
                     return V, it, resL2, res_max, res_matrix, conv 
 
 
@@ -559,16 +561,17 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8,
                 print(f"MG aborted early: exceeded max runtime ({mg_max_runtime} s). "
                       f"Completed {it} iterations.")
                 plot_convergence(output_dir=output_dir, title=f"{Nx}x{Ny}x{Nz} grid")
-                res_L2, res_max, res_matrix = compute_residual_vec_unpadded(V, mask, axp, axm, ayp, aym, azp, azm, a0)
+                resL2, res_max, res_matrix = compute_residual_vec_unpadded(V, mask, axp, axm, ayp, aym, azp, azm, a0)
                 full_res = np.full_like(V, np.nan, dtype=np.float32)
                 full_res[1:-1, 1:-1, 1:-1] = np.abs(R_arr)
                 return V, it, resL2, res_max, res_matrix, conv
             
-                if it == max_iter:
-                    res_L2, res_max, res_matrix = compute_residual_vec_unpadded(V, mask, axp, axm, ayp, aym, azp, azm, a0)
-                    
-                    
+
+                
+            
         # If we exit the loop without converging or hitting runtime limit
+
+        resL2, res_max, res_matrix = compute_residual_vec_unpadded(V, mask, axp, axm, ayp, aym, azp, azm, a0)
         print(f"NOT converged after {max_iter} iterations; last residual={resL2:.5e}")
         plot_convergence(output_dir=output_dir, title=f"{Nx}x{Ny}x{Nz} grid")
         full_res = np.full_like(V, np.nan, dtype=np.float32)
