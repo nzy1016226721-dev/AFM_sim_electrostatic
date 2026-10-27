@@ -1,4 +1,11 @@
-# Standalone AFM state — October 26, 2026
+# Standalone AFM state — October 27, 2026 UTC
+
+The [MPI hierarchy correction](MPI_HIERARCHY_20261027.md) adds full-hierarchy
+admission to planning and runtime and makes automatic grid selection agree
+between them. It rejects the observed failing45-rank and360-rank layouts
+before allocating fields. Interpolation, float32 storage, physics and stopping
+rules retain their existing arithmetic. Large corrected trials have separate
+operational receipts; a source update is not proof that they have converged.
 
 This is the standalone source release for the `afm-parallelized-mpi` branch of
 [AFM_sim_electrostatic](https://github.com/nzy1016226721-dev/AFM_sim_electrostatic/tree/afm-parallelized-mpi).

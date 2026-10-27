@@ -172,7 +172,12 @@ def run_distributed_hierarchy(
     if initial_level < 4:
         raise ValueError("mpi.initial_grid_level must be at least 4")
     current_shape = _initial_shape(target, initial_level)
+    if process_grid is None:
+        from .mpi_domain import suggest_process_grid
+        process_grid = suggest_process_grid(comm.Get_size(), target, initial_level=initial_level)
     decomposition = DomainDecomposition.create(comm, current_shape, process_grid)
+    from .mpi_domain import validate_refinement_hierarchy
+    validate_refinement_hierarchy(target, decomposition.dims, initial_level)
     final_decomposition = decomposition.for_shape(target)
 
     memory_fraction = float(mpi_cfg.get("memory_fraction", 0.80))

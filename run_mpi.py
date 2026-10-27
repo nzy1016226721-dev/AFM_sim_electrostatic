@@ -23,7 +23,9 @@ from simulation.mpi_domain import (
     rank_layout_table,
     suggest_process_grid,
     validate_process_grid,
+    validate_refinement_hierarchy,
 )
+from simulation.main_loop import default_initial_grid_level
 from simulation.numerics import resolve_solver_dtype
 
 
@@ -74,14 +76,17 @@ def _plan(args) -> int:
     ranks = int(args.ranks or mpi_cfg.get("planner_ranks", 0))
     if ranks < 1:
         raise ValueError("--plan requires --ranks (or mpi.planner_ranks in JSON)")
+    configured_initial = mpi_cfg.get("initial_grid_level", cfg.get("initial_grid_level"))
+    initial = default_initial_grid_level(target) if configured_initial is None else int(configured_initial)
     dims = _parse_grid(args.process_grid)
     if dims is None:
         json_dims = mpi_cfg.get("process_grid")
         if json_dims and any(int(v) for v in json_dims):
             dims = tuple(int(v) for v in json_dims)
         else:
-            dims = suggest_process_grid(ranks, target)
+            dims = suggest_process_grid(ranks, target, initial_level=initial)
     validate_process_grid(dims, ranks, target)
+    hierarchy = validate_refinement_hierarchy(target, dims, initial)
     reference_value = cfg.get("epsilon_material", {}).get("reference_resolution", 512)
     reference_shape = ((int(reference_value),)*3 if not isinstance(reference_value,(list,tuple))
                        else tuple(int(v) for v in reference_value))
@@ -123,6 +128,8 @@ def _plan(args) -> int:
     print(f"Global grid: {target[0]}x{target[1]}x{target[2]}")
     print(f"One {field_dtype.name} global field: {human_bytes(field_bytes)}")
     print(f"MPI ranks: {ranks}; process grid: {dims}")
+    print(f"Refinement hierarchy: {hierarchy['shapes']}; "
+          f"{hierarchy['axis_partition_checks']} axis-partition mappings: PASS")
     print(f"Ranks per node: {ranks_per_node}; nodes: {len(per_node)}")
     print(f"Worst local block: {max(rows, key=lambda row: int(row['estimated_peak_bytes']))['counts']}")
     print(f"Worst estimated rank peak: {human_bytes(worst_rank)}")

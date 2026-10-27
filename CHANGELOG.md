@@ -1,5 +1,17 @@
 # AFM Simulation Package — Change Log
 
+## 2026-10-27 UTC — Validate MPI refinement layouts before allocation
+
+- Ported the bundled full-hierarchy admission guard to standalone planning and
+  runtime; automatic layout selection agrees and rejects unsupported factors.
+- Reproduced the failed45-rank plan admission and added ten focused tests,
+  including clipped meshes and runtime/planner agreement. Numerical kernels,
+  RAM defaults, stopping contracts and existing presets remain unchanged.
+- Validation:275 selected tests pass; four genuine two-rank shared/MPI pairs
+  and a six-rank64→128→256 owned/internal-halo reference comparison pass.
+- Fresh experimental cluster replacements use their own actual-layout gates
+  and independent24h budgets. See [scope and limits](docs/MPI_HIERARCHY_20261027.md).
+
 ## 2026-10-26 — Direct MPI branch publication
 
 - Published the audited standalone snapshot to `afm-parallelized-mpi` under

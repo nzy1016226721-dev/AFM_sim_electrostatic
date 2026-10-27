@@ -61,6 +61,12 @@ The second command is a real numerical run. On Alliance, use the site modules
 and scripts in [README_ALLIANCE.md](README_ALLIANCE.md), not an unrelated MPI
 installation.
 
+The planner and runtime now validate every coarse-to-fine transfer for the
+actual process grid before field allocation. Automatic selection filters out
+layouts that need more than the implemented one-cell coarse halo. A layout
+that fits RAM can still be incompatible with refinement; see the
+[hierarchy fix and qualification limits](docs/MPI_HIERARCHY_20261027.md).
+
 ## Tests and evidence boundaries
 
 ```text

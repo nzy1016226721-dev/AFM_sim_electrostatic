@@ -86,7 +86,7 @@ def validate_process_grid(
     return dims
 
 
-def suggest_process_grid(world_size: int, global_shape: Sequence[int]) -> tuple[int, int, int]:
+def suggest_process_grid(world_size: int, global_shape: Sequence[int], *, initial_level: int | None = None) -> tuple[int, int, int]:
     """Choose a factorization that minimizes local-block surface area.
 
     This pure-Python helper is used by the offline resource planner.  Runtime
@@ -110,6 +110,11 @@ def suggest_process_grid(world_size: int, global_shape: Sequence[int]) -> tuple[
             dims = (px, py, pz)
             if any(p > n // 2 for p, n in zip(dims, shape)):
                 continue
+            if initial_level is not None:
+                try:
+                    validate_refinement_hierarchy(shape, dims, initial_level)
+                except ValueError:
+                    continue
             local = tuple(n / p for n, p in zip(shape, dims))
             surface = local[0] * local[1] + local[0] * local[2] + local[1] * local[2]
             aspect = max(local) / min(local)
@@ -117,7 +122,7 @@ def suggest_process_grid(world_size: int, global_shape: Sequence[int]) -> tuple[
             if best is None or score < best[0]:
                 best = (score, dims)
     if best is None:
-        raise ValueError(f"cannot decompose global shape {shape} over {size} ranks")
+        raise ValueError(f"cannot decompose global shape {shape} over {size} ranks with the requested refinement hierarchy")
     return best[1]
 
 
@@ -1398,6 +1403,44 @@ def prolongate_distributed(
     return DistributedField(fine_decomposition, fine_data)
 
 
+def validate_refinement_hierarchy(
+    global_shape: Sequence[int], process_grid: Sequence[int], initial_level: int
+) -> dict:
+    """Validate every actual one-dimensional transfer before field allocation.
+
+    This is the existing bundled AFM admission check, ported independently.
+    Endpoint-aligned mapping and clipped rectangular levels require the actual
+    index calculation; divisibility alone is not a compatibility test.
+    """
+    target = tuple(int(n) for n in global_shape)
+    dims = tuple(int(p) for p in process_grid)
+    if len(target) != 3 or any(n < 2 for n in target):
+        raise ValueError("refinement target must contain three axes of at least two nodes")
+    if int(initial_level) < 4:
+        raise ValueError("mpi.initial_grid_level must be at least 4")
+    shapes = [tuple(min(int(initial_level), n) for n in target)]
+    while shapes[-1] != target:
+        shapes.append(tuple(min(2*n, final) for n, final in zip(shapes[-1], target)))
+    for shape in shapes:
+        validate_process_grid(dims, math.prod(dims), shape)
+    checked = 0
+    for coarse, fine in zip(shapes, shapes[1:]):
+        for axis, (old_n, new_n, parts) in enumerate(zip(coarse, fine, dims)):
+            for coordinate in range(parts):
+                cs, cc = partition_axis(old_n, parts, coordinate)
+                fs, fc = partition_axis(new_n, parts, coordinate)
+                try:
+                    _prolongation_axis(old_n, new_n, fs, fc, cs, cc)
+                except RuntimeError as exc:
+                    raise ValueError(
+                        f"MPI hierarchy preflight rejected {coarse} -> {fine}, "
+                        f"axis {axis}, coordinate {coordinate}/{parts}: {exc}"
+                    ) from exc
+                checked += 1
+    return dict(shapes=[list(s) for s in shapes], process_grid=list(dims),
+                axis_partition_checks=checked)
+
+
 def rank_layout_table(
     global_shape: Sequence[int], process_grid: Sequence[int], dtype=np.float32,
     *, memory_mode="standard", cpu_threads=1, reference_shape=(512,512,512),
@@ -1453,5 +1496,6 @@ __all__ = [
     "solve_distributed_level",
     "suggest_process_grid",
     "validate_process_grid",
+    "validate_refinement_hierarchy",
     "verify_node_memory",
 ]

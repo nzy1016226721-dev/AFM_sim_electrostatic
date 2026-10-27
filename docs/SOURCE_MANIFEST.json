@@ -1,8 +1,8 @@
 {
   "format": "afm-standalone-source-manifest-v4",
-  "snapshot_date": "2026-10-26",
-  "base_git_commit": "8c4819d6f2ac2797774303502a740a50dd9858c0",
-  "scope": "Standalone source-only October 26 direct branch publication",
+  "snapshot_date": "2026-10-27",
+  "base_git_commit": "3afb1fda86f3b4322ce29501cacc280f14cc8a8a",
+  "scope": "Standalone MPI hierarchy admission correction under explicit direct-publication authority",
   "self_excluded": "docs/SOURCE_MANIFEST.json",
   "files": [
     {
@@ -27,8 +27,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "bytes": 38568,
-      "sha256": "aabb1683c9255e51f9f417cda6bdb2354d1e28087c0680cf4c0698a11826c5d4"
+      "bytes": 39342,
+      "sha256": "ace133628dd62964c74ddc2c6fb316941e78c8a20d9ebabd72bdc6062039fd53"
     },
     {
       "path": "DOCUMENTATION.md",
@@ -47,8 +47,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 5195,
-      "sha256": "32d6cfbe017ebe5c731575e67495b84f6af312330465fa69e2ee6a32953fd76b"
+      "bytes": 5562,
+      "sha256": "7667114c0c7c8d732166f84e21ae68b95c6f5b0a26d5b115c64813f92863240c"
     },
     {
       "path": "README_ALLIANCE.md",
@@ -232,8 +232,13 @@
     },
     {
       "path": "docs/CURRENT_STATE.md",
-      "bytes": 5657,
-      "sha256": "258ff7a8b796ed3ea14f51c4dc4627b4cb6fea59c319b85ffdcc0bdb6dd42e96"
+      "bytes": 6121,
+      "sha256": "f3c04d8bfd408ae26a3167b91bfb6b1763ceb226e89d9ced8a58074a74b4c89d"
+    },
+    {
+      "path": "docs/MPI_HIERARCHY_20261027.md",
+      "bytes": 3248,
+      "sha256": "c47023330ca1ba60eaf5362a8cc799848b1eccb3a65f5d937710aad079dc21dd"
     },
     {
       "path": "docs/MPI_PLOTTING.md",
@@ -289,6 +294,11 @@
       "path": "docs/history/SOURCE_MANIFEST_20261009.json",
       "bytes": 27271,
       "sha256": "a75de22e271d06314dffea9ff8afd444780ae243807f98e813e914315cc8e904"
+    },
+    {
+      "path": "docs/history/SOURCE_MANIFEST_20261026_published.json",
+      "bytes": 29179,
+      "sha256": "6faf2a921c906417577b18e123eaf03bbf691d1d930689f447624c8514425b4a"
     },
     {
       "path": "jobs/PARITY_4096_TOL1E6.md",
@@ -612,8 +622,8 @@
     },
     {
       "path": "run_mpi.py",
-      "bytes": 7080,
-      "sha256": "80aea0fedba6482f538fdce83fd4b5aa21e2ebe2546082687fb56d584ecb2b3e"
+      "bytes": 7605,
+      "sha256": "d1d98f3ee51a03f6caf7456e5e0e3807903a4673cfffb2cb961eaa527478cc21"
     },
     {
       "path": "simulation/__init__.py",
@@ -672,8 +682,8 @@
     },
     {
       "path": "simulation/mpi_domain.py",
-      "bytes": 58676,
-      "sha256": "c820a7a9c0254cb728c879d2b9040f123e5da9d8095918ca848c5d7444201b06"
+      "bytes": 60884,
+      "sha256": "f0dd8897db5024eeb1498ebbf3aaf9987d7a5419d486120087569f6a743198e0"
     },
     {
       "path": "simulation/mpi_io.py",
@@ -682,8 +692,8 @@
     },
     {
       "path": "simulation/mpi_main.py",
-      "bytes": 22612,
-      "sha256": "f22dbe90e23803ee77bef46b06d13b6cb0a812c39f80b5c6f6916413b6e3e20b"
+      "bytes": 22927,
+      "sha256": "1bfe2c00bf86711bb3308669ab9c4e0db17035b3894ea3ae33449855aa12e5b5"
     },
     {
       "path": "simulation/numerics.py",
@@ -799,6 +809,11 @@
       "path": "tests/test_mpi_domain.py",
       "bytes": 15337,
       "sha256": "181cdd560f370ffb53f56de71bff2770acc1067011e5fdb77bdbc3400da135e8"
+    },
+    {
+      "path": "tests/test_mpi_hierarchy.py",
+      "bytes": 3547,
+      "sha256": "1bed2144bf786e696a62985c006a6261307e98aa6af9a609b23bd758ce8f15c9"
     },
     {
       "path": "tests/test_mpi_plotting.py",
