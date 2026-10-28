@@ -9,85 +9,6 @@ MG_TIME = {"elapsed": 0.0}
 RESIDUAL_CSV = "residual_history.csv"
 
 
-# def build_downward_pointing_tip_old(nx, ny, nz, tip_z=0.2, R=0.05, r_tip=0.15,
-#                                 aspect_ratio=2.0, verbose=True):
-#     """Generate a boolean mask for a hyperbolic AFM tip geometry.
-
-#     The tip is modelled as a hyperboloid pointing downward along z,
-#     centred at (0.5, 0.5) in xy, with curvature radius R, truncation
-#     radius r_tip, and vertical aspect ratio.
-
-#     Parameters
-#     ----------
-#     nx : int
-#         Grid points in x.
-#     ny : int
-#         Grid points in y.
-#     nz : int
-#         Grid points in z.
-#     tip_z : float, optional
-#         Fractional z-coordinate of the tip apex (default: 0.2).
-#     R : float, optional
-#         Curvature radius (fractional, default: 0.05).
-#     r_tip : float, optional
-#         Tip truncation radius (fractional, default: 0.15).
-#     aspect_ratio : float, optional
-#         Height/radius aspect ratio (default: 2.0).
-#     verbose : bool, optional
-#         If True, print geometry info (default: True).
-
-#     Returns
-#     -------
-#     mask : np.ndarray (bool)
-#         3D boolean mask where True indicates tip voxels.
-#     z_tip : float
-#         Fractional z-coordinate of the tip apex.
-#     z_base : float
-#         Fractional z-coordinate of the tip base.
-#     """
-
-#     x = np.linspace(0, 1, nx)
-#     y = np.linspace(0, 1, ny)
-#     z = np.linspace(0, 1, nz)
-#     cx, cy = 0.5, 0.5
-#     tip_z_idx = int(tip_z * (nz - 1))
-#     z_tip = z[tip_z_idx]
-#     mask = np.zeros((nx, ny, nz), dtype=bool)
-
-#     theta_asym = np.arctan(aspect_ratio)
-#     a = R * np.tan(theta_asym)
-#     b = R * np.tan(theta_asym) ** 2
-
-#     z0 = z_tip - b
-#     z_base = z0 + np.sqrt(b**2 * (1 + (r_tip**2 / a**2)))
-
-#     if verbose:
-#         print(f"\n[Hyperbolic AFM Tip]")
-#         print(f"  Aspect ratio (tan{chr(952)}) = {aspect_ratio:.3f}, {chr(952)}_asym = {np.degrees(theta_asym):.2f}{chr(176)}")
-#         print(f"  a = {a:.6f}, b = {b:.6f}")
-#         print(f"  Curvature radius at tip R = {R:.4f}")
-#         print(f"  Tip_z = {z_tip:.3f}, Base_z = {z_base:.3f}, r_tip = {r_tip:.3f}")
-
-#     for k in range(nz):
-#         zk = z[k]
-#         if zk < z_tip or zk > z_base:
-#             continue
-#         dz = zk - z0
-#         if dz**2 < b**2:
-#             continue
-#         r_max = a * np.sqrt((dz**2 / b**2) - 1)
-#         r_max = min(r_max, r_tip)
-#         for j in range(ny):
-#             for i in range(nx):
-#                 r = np.sqrt((x[i] - cx)**2 + (y[j] - cy)**2)
-#                 if r <= r_max:
-#                     mask[i, j, k] = True
-
-#     if verbose:
-#         print(f"  Tip_z = {z_tip:.3f}, Base_z = {z_base:.3f}, Total points: {np.sum(mask)}")
-#        return mask, z_tip, z_base
-
-
 def build_downward_pointing_tip(nx, ny, nz, tip_z=0.2, R=0.05, r_tip=0.15,
                                 aspect_ratio=2.0, verbose=True):
     """
@@ -300,8 +221,8 @@ def plot_convergence(csv_file=None, output_dir=".", title=None):
     plt.close(fig)
 
 
-def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8,
-                 max_iter=50, tol=1e-6, verbose=True, eps_r=None, eps=True,
+def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.857,
+                 max_iter=50, tol=1e-3, max_tol=1e-5, verbose=True, eps_r=None, eps=True,
                  mg_max_runtime=None, output_dir="."):
     """Multigrid solver for the 3D Poisson equation with dielectric variation.
 
@@ -318,7 +239,7 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8,
     boundary_mask : np.ndarray (bool)
         True at Dirichlet boundary nodes.
     damping : float, optional
-        SOR damping factor / omega (default: 0.8).
+        SOR damping factor / omega (default: 0.857).
     max_iter : int, optional
         Maximum solver iterations (default: 50).
     tol : float, optional
@@ -352,115 +273,10 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8,
 
     print(f"   Starting 3D MG solver: {nx}x{ny}x{nz} grid")
 
-    # def solve_varying_dielectric_3d_zero_rhs_old(V, eps_cell, omega=1.5,
-    #                                               tol=1e-10, max_iter=20000,
-    #                                               mask=None, verbose=False,
-    #                                               output_dir="."):
-    #     """(Legacy) SOR solver for div(eps * grad(phi)) = 0.
 
-    #     Uses per-iteration residual logging and safety checks. Replaced by
-    #     the optimised version below but retained for reference.
-
-    #     Parameters
-    #     ----------
-    #     V : np.ndarray
-    #         Potential array (will be modified in-place).
-    #     eps_cell : np.ndarray
-    #         Dielectric on cells (Nx-1 x Ny-1 x Nz-1).
-    #     omega : float, optional
-    #         SOR over-relaxation factor (default: 1.5).
-    #     tol : float, optional
-    #         Convergence tolerance (default: 1e-10).
-    #     max_iter : int, optional
-    #         Maximum iterations (default: 20000).
-    #     mask : np.ndarray (bool) or None, optional
-    #         Dirichlet mask (default: None = all free).
-    #     verbose : bool, optional
-    #         If True, print progress (default: False).
-    #     output_dir : str, optional
-    #         Log directory (default: ".").
-
-    #     Returns
-    #     -------
-    #     V : np.ndarray
-    #         Converged potential.
-    #     res_matrix : np.ndarray
-    #         Final residual per node.
-    #     """
-    #     Nx, Ny, Nz = V.shape
-    #     if eps_cell.shape != (Nx-1, Ny-1, Nz-1):
-    #         raise ValueError("eps_cell must have shape (Nx-1,Ny-1,Nz-1).")
-
-    #     if mask is None:
-    #         mask = np.zeros_like(V, dtype=bool)
-
-    #     Vfix = V.copy()
-
-    #     ec = eps_cell
-    #     axp = 0.25*(ec[1:, :-1, :-1] + ec[1:, 1:, :-1] + ec[1:, :-1, 1:] + ec[1:, 1:, 1:])
-    #     axm = 0.25*(ec[:-1, :-1, :-1] + ec[:-1, 1:, :-1] + ec[:-1, :-1, 1:] + ec[:-1, 1:, 1:])
-    #     ayp = 0.25*(ec[:-1, 1:, :-1] + ec[1:, 1:, :-1] + ec[:-1, 1:, 1:] + ec[1:, 1:, 1:])
-    #     aym = 0.25*(ec[:-1, :-1, :-1] + ec[1:, :-1, :-1] + ec[:-1, :-1, 1:] + ec[1:, :-1, 1:])
-    #     azp = 0.25*(ec[:-1, :-1, 1:] + ec[1:, :-1, 1:] + ec[:-1, 1:, 1:] + ec[1:, 1:, 1:])
-    #     azm = 0.25*(ec[:-1, :-1, :-1] + ec[1:, :-1, :-1] + ec[:-1, 1:, :-1] + ec[1:, 1:, :-1])
-
-    #     def pad3(arr):
-    #         out = np.zeros((Nx,Ny,Nz))
-    #         out[1:-1,1:-1,1:-1] = arr
-    #         return out
-
-    #     axp, axm, ayp, aym, azp, azm = map(pad3, (axp, axm, ayp, aym, azp, azm))
-    #     a0 = axp + axm + ayp + aym + azp + azm
-
-    #     for it in range(1, max_iter+1):
-    #         if it == 1:
-    #             level_start_time = time.time()
-
-    #         num = (
-    #             axp[1:-1,1:-1,1:-1] * V[2:  ,1:-1,1:-1] +
-    #             axm[1:-1,1:-1,1:-1] * V[ :-2,1:-1,1:-1] +
-    #             ayp[1:-1,1:-1,1:-1] * V[1:-1,2:  ,1:-1] +
-    #             aym[1:-1,1:-1,1:-1] * V[1:-1, :-2,1:-1] +
-    #             azp[1:-1,1:-1,1:-1] * V[1:-1,1:-1,2:  ] +
-    #             azm[1:-1,1:-1,1:-1] * V[1:-1,1:-1, :-2]
-    #         )
-
-    #         denom = a0[1:-1,1:-1,1:-1]
-
-    #         Vnew_core = num / denom
-    #         R = Vnew_core - V[1:-1,1:-1,1:-1]
-    #         V[1:-1,1:-1,1:-1] += omega*R
-    #         V = neumann(V)
-    #         V[mask] = Vfix[mask]
-
-    #         if (it % 10 == 0 or it <= 5):
-    #             res, res_max, res_matrix = compute_residual_vec_unpadded(V, mask, axp[1:-1,1:-1,1:-1], axm[1:-1,1:-1,1:-1], ayp[1:-1,1:-1,1:-1], aym[1:-1,1:-1,1:-1], azp[1:-1,1:-1,1:-1], azm[1:-1,1:-1,1:-1], a0[1:-1,1:-1,1:-1])
-    #             print(f"iter {it:6d}: res_avg={res:.5e}, res_max={res_max:.5e}")
-    #             log_residual_csv(it, res, res_max, output_dir=output_dir)
-
-    #         elapsed = time.time() - level_start_time
-    #         MG_TIME["elapsed"] = elapsed
-
-    #         if res < tol:
-    #             if verbose:
-    #                 print(f"Converged in {it} iterations; residual={res:.5e}")
-    #             plot_convergence(output_dir=output_dir)
-    #             return V, res_matrix
-
-    #         if (mg_max_runtime is not None) and (elapsed > mg_max_runtime):
-    #             print(f"MG aborted early: exceeded max runtime ({mg_max_runtime} s). "
-    #                   f"Completed {it} iterations.")
-    #             plot_convergence(output_dir=output_dir)
-    #             return V, res_matrix
-
-    #     print(f"NOT converged after {max_iter} iterations; last residual={res:.5e}")
-    #     plot_convergence(output_dir=output_dir)
-    #     return V, res_matrix
-
-    # print(f"   Starting 3D MG solver: {nx}x{ny}x{nz} grid")
 
     def solve_varying_dielectric_3d_zero_rhs(V, eps_cell, max_iter, 
-                                             omega=1.5, tol=1e-10, 
+                                             omega=0.857, tol=1e-3, max_tol=1e-5,
                                               mask=None, verbose=False,
                                               output_dir="."):
         """Optimised SOR solver for div(eps * grad(phi)) = 0."""
@@ -504,7 +320,6 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8,
         Ni, Nj, Nk = Nx-2, Ny-2, Nz-2
 
         num       = np.empty((Ni, Nj, Nk), dtype=np.float32)
-        Vnew_core = np.empty((Ni, Nj, Nk), dtype=np.float32)
         R_arr     = np.empty((Ni, Nj, Nk), dtype=np.float32)
 
         V_int = V[1:-1, 1:-1, 1:-1]
@@ -527,8 +342,9 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8,
             np.divide(num, a0, out=num)
             np.subtract(num, V_int, out=R_arr) 
             
-            #Now performs the Jacobi smoothing, omega*residual is the correction amount to V_int
+            
             #R_arr is num/a0 - V, where num is the sum of all ax*Vx, ay*Vy, etc. 
+            #Now it performs the Jacobi smoothing, omega*residual is the correction amount to V_int
             np.multiply(omega, R_arr, out=num) #re-using scratch again
             np.add(num, V_int, out=V_int)
             
@@ -547,12 +363,14 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8,
                     print(f"iter {it:6d}: res_avg={resL2:.5e}, res_max={res_max:.5e}")
                 log_residual_csv(it, resL2, res_max, output_dir=output_dir)
 
-                if resL2 < tol:
+                if resL2 < tol and res_max < max_tol:
                     if verbose:
-                        print(f"Converged in {it} iterations; residual={resL2:.5e}")
+                        print(f"Converged in {it} iterations; rms residual={resL2:.5e}, global max residual={res_max:.5e}")
                     plot_convergence(output_dir=output_dir, title=f"{Nx}x{Ny}x{Nz} grid")
                     conv = True
-                    print(f'the number of iterations is {it}')
+                    print(f'Number of iterations performed: {it}')
+                    print(f'resL2 = {resL2}')
+                    print(f'global res_max = {res_max}')
                    
                     #And for plotting residuals get the matrix out
                     resL2, res_max, res_matrix = compute_residual_vec_unpadded(V, mask, axp, axm, ayp, aym, azp, azm, a0)
@@ -585,6 +403,6 @@ def mg_3d_masked(Vtip, phi, boundary_mask, damping=0.8,
     if not eps:
         eps_r = np.ones((nx - 1, ny - 1, nz - 1), dtype=np.float32)
     return solve_varying_dielectric_3d_zero_rhs(
-            phi, eps_r, max_iter, damping, tol, boundary_mask, verbose,
+            phi, eps_r, max_iter, damping, tol, max_tol, boundary_mask, verbose,
             output_dir=output_dir
         )

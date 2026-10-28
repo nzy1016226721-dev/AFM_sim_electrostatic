@@ -19,8 +19,8 @@ from .zoom import run_zoom_simulation
 
 def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
                        tip_z=0.2, R=0.05, r_tip=0.15,
-                       damping=0.8, nu1=2, nu2=2,
-                       max_iter=1000, tol=1e-4, aspect_ratio=2.0,
+                       damping=0.857, nu1=2, nu2=2,
+                       max_iter=1000, tol=1e-3, max_tol=1e-1, aspect_ratio=2.0,
                        verbose=True, eps_r=None, eps=True,
                        mg_max_runtime=None, blocks=None, Vgate=None,
                        output_dir="."):
@@ -133,10 +133,17 @@ def run_afm_simulation(Vtip=5, nx=32, ny=32, nz=32,
         # if verbose:
         #     print(f"[Level {level}] Running solver (remaining_iter={remaining_iter})...")
 
-        phi_solution, it_performed, resL2, res_max, res_matrix, conv = mg_3d_masked(Vtip, phi.copy(), boundary_mask,
+        phi_solution, it_performed, resL2, res_max, res_matrix, conv = mg_3d_masked(
+                                    Vtip, 
+                                    phi.copy(),
+                                    boundary_mask,
                                     damping=damping,
-                                    max_iter=max_iter, tol=tol,
-                                    verbose=verbose, eps_r=eps_cell, eps=eps,
+                                    max_iter=max_iter, 
+                                    tol=tol, 
+                                    max_tol=max_tol,
+                                    verbose=verbose, 
+                                    eps_r=eps_cell, 
+                                    eps=eps,
                                     mg_max_runtime=mg_max_runtime,
                                     output_dir=output_dir)
 
@@ -981,10 +988,11 @@ def batch_main(CONFIG_BASE_NAME="afm_config"):
                         tip_z=cfg["tip_z"],
                         R=cfg["R"],
                         r_tip=cfg["r_tip"],
-                        damping=1,
+                        damping=cfg.get("damping", 1),
                         nu1=2, nu2=2,
                         max_iter=cfg["max_iter"],
-                        tol=cfg.get("res_tol_main", 5e-5),
+                        tol=cfg.get("res_tol_main", 1e-4),
+                        max_tol=cfg.get("res_tol_max", 1e-3),
                         aspect_ratio=cfg["aspect_ratio"],
                         verbose=False,
                         eps=True,
@@ -1080,7 +1088,7 @@ def batch_main(CONFIG_BASE_NAME="afm_config"):
                     plt.show()
                     plt.close(fig)
 
-                    run_zoom_simulation(cfg, results, V, config_idx, time_log, output_dir=output_dir)
+                    #run_zoom_simulation(cfg, results, V, config_idx, time_log, output_dir=output_dir)
 
                     del results, phi, residual, fig
                     gc.collect()
